@@ -26,9 +26,9 @@ Nz::ModelRef render(const SphereSurface<T> & surface)
 	unsigned int triangleIndex = 0;
 	for (auto it(surface.trianglesBegin()); it != surface.trianglesEnd(); it++)
 	{
-		Block<T> b1(*std::next(surface.blocksBegin(), it->block1));
-		Block<T> b2(*std::next(surface.blocksBegin(), it->block2));
-		Block<T> b3(*std::next(surface.blocksBegin(), it->block3));
+		SphereBlock<T> b1(*std::next(surface.blocksBegin(), it->block1));
+		SphereBlock<T> b2(*std::next(surface.blocksBegin(), it->block2));
+		SphereBlock<T> b3(*std::next(surface.blocksBegin(), it->block3));
 
 		Nz::Vector3f pos1(toVector3(b1.pos, surface.radius()) + offset(b1, surface.radius()));
 		Nz::Vector3f pos2(toVector3(b2.pos, surface.radius()) + offset(b2, surface.radius()));
@@ -90,7 +90,7 @@ unsigned int indexCount(const SphereSurface<T> & surface)
 }
 
 template<>
-Nz::Vector3f offset(const Block<float> & point, float radius)
+Nz::Vector3f offset(const SphereBlock<float> & point, float radius)
 {
 	Nz::Vector3f pos(toVector3(point.pos));
 	return pos.Normalize()*radius*point.data;

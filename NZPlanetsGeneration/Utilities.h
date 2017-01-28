@@ -19,5 +19,8 @@ float pointLineDistance(const Nz::Vector3f & line1, const Nz::Vector3f & line2, 
 
 bool isNormalOut(const Nz::Vector3f & pos1, const Nz::Vector3f & pos2, const Nz::Vector3f & pos3);
 
+bool isLeft(const Nz::Vector3f & dir, const Nz::Vector3f line, const Nz::Vector3f & normal);
+
+bool pointOnTetrahedron(Nz::Vector3f a, Nz::Vector3f b, Nz::Vector3f c, Nz::Vector3f d, Nz::Vector3f point);
 
 #endif // UTILITIES_H

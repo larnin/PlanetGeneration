@@ -20,10 +20,21 @@ int main()
 	d.passCount = 5;
 	d.passDivisor = 2;
 	d.passPointMultiplier = 2;
-	d.pointCount = 20;
+	d.pointCount = 500;
 	d.amplitude = 0.1f;
 	SphereSurface<float> surface(perlin(d));
 	surface.setRadius(3);
+
+	/*SphericalDistribution<float> pitchDistrib;
+	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
+	std::mt19937 engine;
+
+	SphereSurface<float> surface(3);
+
+	for (unsigned int i(0); i < 1000; i++)
+		surface.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)));
+
+	surface.buildMap();*/
 
 	std::cout << c.GetSeconds() << std::endl;
 

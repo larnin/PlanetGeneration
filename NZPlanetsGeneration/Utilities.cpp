@@ -51,7 +51,7 @@ std::pair<bool, Nz::Vector3f> intersect(const Nz::Vector3f & v0, const Nz::Vecto
 
 	Nz::Vector3f q(cross(s, e1));
 	float v(f*dot(d, q));
-	if (v < 0 || v > 1)
+	if (v < 0 || u+v > 1)
 		return std::make_pair(false, Nz::Vector3f());
 
 	float t(f*dot(e2, q));
@@ -70,4 +70,31 @@ Nz::Vector3f proportions(const Nz::Vector3f & a, const Nz::Vector3f & b, const N
 float pointLineDistance(const Nz::Vector3f & line1, const Nz::Vector3f & line2, const Nz::Vector3f & pos)
 {
 	return norm(cross(pos - line1, pos - line2)) / norm(line2 - line1);
+}
+
+bool isLeft(const Nz::Vector3f & dir, const Nz::Vector3f line, const Nz::Vector3f & normal)
+{
+	return (Nz::Vector3f::DotProduct(Nz::Vector3f::CrossProduct(line, normal), dir) < 0);
+}
+
+bool pointOnTetrahedron(Nz::Vector3f a,Nz::Vector3f b, Nz::Vector3f c, Nz::Vector3f d, Nz::Vector3f point)
+{
+	Nz::Vector3f center((a + b + c + d) / 4);
+	a -= center;
+	b -= center;
+	c -= center;
+	d -= center;
+	point -= center;
+
+	auto lambda([](const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c, Nz::Vector3f point) -> bool
+	{
+		Nz::Vector3f center((a + b + c) / 3);
+		point -= center;
+		Nz::Vector3f normal(Nz::Vector3f::CrossProduct(b - a, c - a));
+		bool pointSameSideThanNormal(Nz::Vector3f::DotProduct(normal, point) > 0);
+		bool normalOut(Nz::Vector3f::DotProduct(center, normal) > 0);
+		return normalOut != pointSameSideThanNormal;
+	});
+
+	return lambda(a, b, c, point) && lambda(a, b, d, point) && lambda(a, c, d, point) && lambda(b, c, d, point);
 }

@@ -4,8 +4,10 @@
 #include "Utilities.h"
 #include <Nazara/Math/Vector3.hpp>
 #include <cmath>
+#include <cassert>
 #include <algorithm>
 #include <limits>
+#include <array>
 
 template <typename T>
 SphereSurface<T>::SphereSurface(float radius)
@@ -16,20 +18,19 @@ SphereSurface<T>::SphereSurface(float radius)
 }
 
 template <typename T>
-void SphereSurface<T>::addBlock(const SpherePoint & pos)
+void SphereSurface<T>::addBlock(const SpherePoint & pos, T value = T())
 {
 	m_blocks.emplace_back(pos);
+	m_blocks.back().data = value;
 	m_builded = false;
 }
 
-template <typename T>
+/*template <typename T>
 void SphereSurface<T>::buildMap()
 {
 	if (m_builded)
 		return;
 
-	m_borders.clear();
-	m_points.clear();
 	m_triangles.clear();
 
 	for (auto it(m_blocks.begin()); it != m_blocks.end(); it++)
@@ -64,83 +65,133 @@ void SphereSurface<T>::buildMap()
 				if (!isNormalOut(pos1, pos2, pos3))
 					std::swap(b2, b3);
 
-				Triangle t(b1, b2, b3);
+				SphereTriangle t(b1, b2, b3);
 				m_triangles.push_back(t);
-				m_points.emplace_back(toSpherePoint(center));
-				Point p = m_points.back();
-				unsigned int pID = m_points.size() - 1;
-				it->points.push_back(pID);
-				it2->points.push_back(pID);
-				it3->points.push_back(pID);
-				p.blocks.push_back(b1);
-				p.blocks.push_back(b2);
-				p.blocks.push_back(b3);
 			}
 		}
 	}
 
 	m_builded = true;
-}
+}*/
 
 template <typename T>
-void SphereSurface<T>::buildMap2()
+void SphereSurface<T>::buildMap()
 {
-	unsigned int b1(0);
-	unsigned int b2(0);
-	unsigned int b3(0);
-	bool firstTriangleFound(false);
+	if (m_builded)
+		return;
 
-	Nz::Vector3f pos1(toVector3(m_blocks.front().pos));
-	for (auto it(std::next(m_blocks.begin())); it != m_blocks.end(); it++)
+	std::vector<Nz::Vector3f> points;
+	for (unsigned int i(0); i < m_blocks.size(); i++)
+		points.push_back(toVector3(m_blocks[i].pos));
+
+	unsigned int a, b, c, d;
+	bool isOn = false;
+	for (a = 0; a < points.size(); a++)
 	{
-		Nz::Vector3f pos2(toVector3(it2->pos));
-		for (auto it2(std::next(m_blocks.begin(); it2 != m_blocks.end; it++)))
+		for (b = a + 1; b < points.size(); b++)
 		{
-			Nz::Vector3f pos3(toVector3(it3->pos));
-			Nz::Vector3f center(triangleOmega(pos1, pos2, pos3));
-			float sqrRadius(sqrNorm(center - pos1));
-			bool isOn = false;
-			for (auto it4(m_blocks.begin()); it4 != m_blocks.end(); it4++)
+			for (c = b + 1; c < points.size(); c++)
 			{
-				if (it4 == it || it4 == it2 || it4 == it3)
-					continue;
-				if (sqrNorm(toVector3(it4->pos) - center) <= sqrRadius)
+				for (d = c + 1; d < points.size(); d++)
 				{
-					isOn = true;
-					break;
+					isOn = pointOnTetrahedron(points[a], points[b], points[c], points[d], Nz::Vector3f::Zero());
+					if (isOn)
+						break;
 				}
+				if (isOn)
+					break;
 			}
 			if (isOn)
-				continue;
-
-			b2 = std::distance(m_blocks.begin(), it);
-			b3 = std::distance(m_blocks.begin(), it2);
-
-			firstTriangleFound = true;
+				break;
 		}
-		if (firstTriangleFound)
+		if (isOn)
 			break;
 	}
 
-	auto & blocks(m_blocks);
-	std::vector<unsigned int> uncomputedPoints;
-	for (unsigned int i(0); i < m_blocks.size(); i++)
-		if (i != b1 || i != b2 || i != b3)
-			uncomputedPoints.push_back(i);
-
-	std::vector<unsigned int> convexHull;
-	convexHull.push_back(b1);
-	convexHull.push_back(b2);
-	convexHull.push_back(b3);
-
-	while (uncomputedPoints.size() > 0)
+	if (!isOn)
 	{
-		//get the point at the min distance of the hull
-		//connect that point at the two nearest point of the hull (the two points that support the nearest line)
-		// add the triangle to the hull and made it convex
-		// if the convex hull is modified, add the modified triangle
-		//repeat
+		m_builded = true;
+		return;
 	}
+
+	struct LocalTriangle
+	{
+		LocalTriangle(unsigned int _a, unsigned int _b, unsigned int _c)
+			: a(_a), b(_b), c(_c) {}
+		unsigned int a;
+		unsigned int b;
+		unsigned int c;
+	};
+
+	std::vector<LocalTriangle> triangles;
+	triangles.emplace_back(a, b, c);
+	triangles.emplace_back(a, b, d);
+	triangles.emplace_back(a, c, d);
+	triangles.emplace_back(b, c, d);
+
+	std::vector<unsigned int> pointsToCompute;
+	for (unsigned int i(0); i < points.size(); i++)
+		if (i != a && i != b && i != c && i != d)
+			pointsToCompute.push_back(i);
+
+	while (!pointsToCompute.empty())
+	{
+		unsigned int index(pointsToCompute.back());
+		pointsToCompute.pop_back();
+		for (unsigned int tIndex(0); tIndex < triangles.size(); tIndex++)
+		{
+			LocalTriangle t(triangles[tIndex]);
+			if (!intersect(points[t.a], points[t.b], points[t.c], Nz::Vector3f::Zero(), points[index]).first)
+				continue;
+
+			triangles.emplace_back(index, t.a, t.b);
+			triangles.emplace_back(index, t.a, t.c);
+			triangles.emplace_back(index, t.b, t.c);
+			triangles.erase(std::next(triangles.begin(), tIndex));
+
+			std::vector<LocalTriangle*> newTriangles{ &triangles[triangles.size() - 1], &triangles[triangles.size() - 2] , &triangles[triangles.size() - 3] };
+			for (LocalTriangle* newTriangle : newTriangles)
+			{
+				auto other(std::find_if(triangles.begin(), triangles.end(), [newTriangle](const auto & t) 
+				{
+					std::array<unsigned int, 3> tPoints{ t.a, t.b, t.c };
+					return std::find(tPoints.begin(), tPoints.end(), newTriangle->b) != tPoints.end() && std::find(tPoints.begin(), tPoints.end(), newTriangle->c) != tPoints.end();
+				}));
+				assert(other != triangles.end());
+
+				Nz::Vector3f omega(triangleOmega(points[other->a], points[other->b], points[other->c]));
+				if ((omega - points[index]).GetSquaredLength() > (omega - points[other->a]).GetSquaredLength())
+					continue;
+
+				if (other->a == newTriangle->c)
+					other->a = newTriangle->a;
+				else if (other->b == newTriangle->c)
+					other->b = newTriangle->a;
+				else other->c = newTriangle->a;
+				if (other->a != newTriangle->a && other->a != newTriangle->b)
+					newTriangle->b = other->a;
+				else if(other->b != newTriangle->a && other->b != newTriangle->b)
+					newTriangle->b = other->b;
+				else newTriangle->b = other->c;
+
+			}
+
+			break;
+		}
+	}
+
+	for (const auto & t : triangles)
+		addTriangle(t.a, t.b, t.c);
+
+	m_builded = true;
+}
+
+template <typename T>
+void SphereSurface<T>::addTriangle(unsigned int a, unsigned int b, unsigned int c)
+{
+	if (!isNormalOut(toVector3(m_blocks[a].pos), toVector3(m_blocks[b].pos), toVector3(m_blocks[c].pos)))
+		std::swap(b, c);
+	m_triangles.emplace_back(a, b, c);
 }
 
 template <typename T>
@@ -150,10 +201,10 @@ SphereSurface<U> SphereSurface<T>::clone(U defaultValue)
 	SphereSurface<U> surface;
 	surface.m_builded = m_builded;
 
-	for (Block<T> bT : m_blocks)
+	for (SphereBlock<T> bT : m_blocks)
 	{
 		surface.addBlock(bT.pos);
-		Block<U>& bU(surface.m_blocks.back());
+		SphereBlock<U>& bU(surface.m_blocks.back());
 		bU.data = defaultValue;
 		if (m_builded)
 		{

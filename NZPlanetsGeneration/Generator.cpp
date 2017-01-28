@@ -9,15 +9,13 @@ SphereSurface<float> perlinPass(T engine, float max, unsigned int pointCount)
 {
 	std::uniform_real_distribution<float> d(-max, max);
 	SphericalDistribution<float> pitchDistrib;
-	std::uniform_real_distribution<float> yawDistrib(0, 2*PI);
+	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
 
 	SphereSurface<float> s;
 
 	for (unsigned int i(0); i < pointCount; i++)
-		s.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)));
+		s.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)), d(engine));
 
-	for (auto it(s.blocksBegin()); it != s.blocksEnd(); it++)
-		it->data = d(engine);
 	relaxation(s, 3);
 	s.buildMap();
 	return s;
@@ -49,9 +47,9 @@ SphereSurface<float> perlin(const PerlinData & data)
 	{
 		for (auto it(surface.trianglesBegin()); it != surface.trianglesEnd(); it++)
 		{
-			const Block<float> & b1(*std::next(surface.blocksBegin(), it->block1));
-			const Block<float> & b2(*std::next(surface.blocksBegin(), it->block2));
-			const Block<float> & b3(*std::next(surface.blocksBegin(), it->block3));
+			const SphereBlock<float> & b1(*std::next(surface.blocksBegin(), it->block1));
+			const SphereBlock<float> & b2(*std::next(surface.blocksBegin(), it->block2));
+			const SphereBlock<float> & b3(*std::next(surface.blocksBegin(), it->block3));
 
 			Nz::Vector3f pos1(toVector3(b1.pos));
 			Nz::Vector3f pos2(toVector3(b2.pos));

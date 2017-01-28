@@ -5,8 +5,6 @@
 #include <random>
 #include <cmath>
 
-const float PI(3.14159f);
-
 template <typename T>
 class SphericalDistribution
 {
@@ -21,7 +19,7 @@ public:
 	void reset() { } //why the fuck i need that ?
 	void param() { }
 	result_type min() const { return 0; }
-	result_type max() const { return PI; }
+	result_type max() const { return M_PI; }
 
 	template <typename U> //idk why i need to use an other type, it's the same
 	friend std::ostream& operator<<(std::ostream& os, const SphericalDistribution<U>& d);
