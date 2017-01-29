@@ -29,6 +29,9 @@
     <ClCompile Include="Render.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Biome.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Block.h">
@@ -38,9 +41,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SphericalDistribution.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VectConvert.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SphereSurface.h">
@@ -58,9 +58,15 @@
     <ClInclude Include="Render.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Biome.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Render.inl">
+      <Filter>Template Files</Filter>
+    </None>
+    <None Include="Biome.inl">
       <Filter>Template Files</Filter>
     </None>
   </ItemGroup>

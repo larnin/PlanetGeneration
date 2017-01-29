@@ -1,6 +1,5 @@
 //#include "spheresurface.h"
 
-#include "VectConvert.h"
 #include "Utilities.h"
 #include <Nazara/Math/Vector3.hpp>
 #include <cmath>
@@ -25,55 +24,6 @@ void SphereSurface<T>::addBlock(const SpherePoint & pos, T value = T())
 	m_builded = false;
 }
 
-/*template <typename T>
-void SphereSurface<T>::buildMap()
-{
-	if (m_builded)
-		return;
-
-	m_triangles.clear();
-
-	for (auto it(m_blocks.begin()); it != m_blocks.end(); it++)
-	{
-		Nz::Vector3f pos1(toVector3(it->pos));
-		for (auto it2(std::next(it)); it2 != m_blocks.end(); it2++)
-		{
-			Nz::Vector3f pos2(toVector3(it2->pos));
-			for (auto it3(std::next(it2)); it3 != m_blocks.end(); it3++)
-			{
-				Nz::Vector3f pos3(toVector3(it3->pos));
-				Nz::Vector3f center(triangleOmega(pos1, pos2, pos3));
-				float sqrRadius(sqrNorm(center - pos1));
-				bool isOn = false;
-				for (auto it4(m_blocks.begin()); it4 != m_blocks.end(); it4++)
-				{
-					if (it4 == it || it4 == it2 || it4 == it3)
-						continue;
-					if (sqrNorm(toVector3(it4->pos) - center) <= sqrRadius)
-					{
-						isOn = true;
-						break;
-					}
-				}
-				if (isOn)
-					continue;
-
-				unsigned int b1(std::distance(m_blocks.begin(), it));
-				unsigned int b2(std::distance(m_blocks.begin(), it2));
-				unsigned int b3(std::distance(m_blocks.begin(), it3));
-
-				if (!isNormalOut(pos1, pos2, pos3))
-					std::swap(b2, b3);
-
-				SphereTriangle t(b1, b2, b3);
-				m_triangles.push_back(t);
-			}
-		}
-	}
-
-	m_builded = true;
-}*/
-
 template <typename T>
 void SphereSurface<T>::buildMap()
 {
@@ -96,7 +46,14 @@ void SphereSurface<T>::buildMap()
 				{
 					isOn = pointOnTetrahedron(points[a], points[b], points[c], points[d], Nz::Vector3f::Zero());
 					if (isOn)
-						break;
+					{
+						isOn = triangleOmega(points[a], points[b], points[c]).SquaredDistance(points[a]) <= points[a].SquaredDistance(points[d])
+							&& triangleOmega(points[a], points[b], points[d]).SquaredDistance(points[a]) <= points[a].SquaredDistance(points[c])
+							&& triangleOmega(points[a], points[c], points[d]).SquaredDistance(points[a]) <= points[a].SquaredDistance(points[b])
+							&& triangleOmega(points[b], points[c], points[d]).SquaredDistance(points[b]) <= points[b].SquaredDistance(points[a]);
+						if (isOn)
+							break;
+					}
 				}
 				if (isOn)
 					break;

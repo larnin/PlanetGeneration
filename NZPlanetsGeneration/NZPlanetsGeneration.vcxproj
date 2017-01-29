@@ -165,7 +165,6 @@
     <ClInclude Include="SphereSurface.h" />
     <ClInclude Include="SphericalDistribution.h" />
     <ClInclude Include="Utilities.h" />
-    <ClInclude Include="VectConvert.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Render.inl" />

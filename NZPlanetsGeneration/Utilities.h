@@ -3,11 +3,24 @@
 #pragma once
 
 #include <Nazara/Math/Vector3.hpp>
+#include <Nazara/Math/Vector2.hpp>
 #include <utility>
 #include "spherepoint.h"
 
-Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b);
-float dot(const Nz::Vector3f & a, const Nz::Vector3f & b);
+float angle(const Nz::Vector2f & vect);
+
+Nz::Vector2f toVect(float norm, float angle);
+
+Nz::Vector2f rotate(const Nz::Vector2f & vect, float rotateAngle);
+
+Nz::Vector3f toVector3(const SpherePoint & point, float radius = 1);
+
+SpherePoint toSpherePoint(const Nz::Vector3f & pos);
+
+Nz::Vector2f project(const Nz::Vector3f & pos, float yaw, float pitch);
+
+/*Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b);
+float dot(const Nz::Vector3f & a, const Nz::Vector3f & b);*/
 
 Nz::Vector3f triangleOmega(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c);
 

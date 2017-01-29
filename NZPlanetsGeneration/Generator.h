@@ -26,4 +26,9 @@ struct PerlinData
 
 SphereSurface<float> perlin(const PerlinData & data);
 
+struct worldMakerData
+{
+
+};
+
 #endif // GENERATOR_H

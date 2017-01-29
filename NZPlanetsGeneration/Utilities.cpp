@@ -1,5 +1,41 @@
 #include "Utilities.h"
-#include "VectConvert.h"
+
+float angle(const Nz::Vector2f & vect)
+{
+	return atan2(vect.y, vect.x);
+}
+
+Nz::Vector2f toVect(float norm, float angle)
+{
+	return Nz::Vector2f(cos(angle)*norm, sin(angle)*norm);
+}
+
+Nz::Vector2f rotate(const Nz::Vector2f & vect, float rotateAngle)
+{
+	return toVect(vect.GetLength(), angle(vect) + rotateAngle);
+}
+
+Nz::Vector3f toVector3(const SpherePoint & point, float radius)
+{
+	Nz::Vector3f pos(std::cos(point.yaw)*radius, std::sin(point.yaw)*radius, 0);
+	pos.x *= sin(point.pitch);
+	pos.y *= sin(point.pitch);
+	pos.z = cos(point.pitch)*radius;
+	return pos;
+}
+
+SpherePoint toSpherePoint(const Nz::Vector3f & pos)
+{
+	return SpherePoint(angle(Nz::Vector2f(pos.x, pos.y)), angle(Nz::Vector2f(pos.z, Nz::Vector2f(pos.x, pos.y).GetLength())));
+}
+
+Nz::Vector2f project(const Nz::Vector3f & pos, float yaw, float pitch)
+{
+	SpherePoint s(toSpherePoint(pos));
+	s.yaw += yaw;
+	Nz::Vector3f rotatedPos(toVector3(s, pos.GetLength()));
+	return Nz::Vector2f(rotatedPos.x, rotatedPos.y*cos(pitch) + rotatedPos.z*sin(pitch));
+}
 
 bool isNormalOut(const Nz::Vector3f & pos1, const Nz::Vector3f & pos2, const Nz::Vector3f & pos3)
 {
@@ -9,7 +45,7 @@ bool isNormalOut(const Nz::Vector3f & pos1, const Nz::Vector3f & pos2, const Nz:
 }
 
 
-Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b)
+/*Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b)
 {
 	return Nz::Vector3f(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
 }
@@ -17,18 +53,18 @@ Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b)
 float dot(const Nz::Vector3f & a, const Nz::Vector3f & b)
 {
 	return a.x*b.x + a.y*b.y + a.z*b.z;
-}
+}*/
 
 Nz::Vector3f triangleOmega(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c)
 {
 	Nz::Vector3f ac(c - a);
 	Nz::Vector3f ab(b - a);
-	Nz::Vector3f abXac(cross(ab, ac));
-	float sqrabXac = 2 * sqrNorm(abXac);
+	Nz::Vector3f abXac(Nz::Vector3f::CrossProduct(ab, ac));
+	float sqrabXac = 2 * abXac.GetSquaredLength();
 	if (abs(sqrabXac) <= std::numeric_limits<float>::epsilon())
 		sqrabXac = 2*std::numeric_limits<float>::epsilon();
 
-	Nz::Vector3f toCircumsphereCenter((cross(abXac, ab)*sqrNorm(ac) + cross(ac, abXac)*sqrNorm(ab)) / sqrabXac);
+	Nz::Vector3f toCircumsphereCenter((Nz::Vector3f::CrossProduct(abXac, ab)*ac.GetSquaredLength() + Nz::Vector3f::CrossProduct(ac, abXac)*ab.GetSquaredLength()) / sqrabXac);
 
 	return a + toCircumsphereCenter;
 }
@@ -37,24 +73,24 @@ std::pair<bool, Nz::Vector3f> intersect(const Nz::Vector3f & v0, const Nz::Vecto
 {
 	Nz::Vector3f e1(v1 - v0);
 	Nz::Vector3f e2(v2 - v0);
-	Nz::Vector3f h(cross(d, e2));
-	float a(dot(e1, h));
+	Nz::Vector3f h(Nz::Vector3f::CrossProduct(d, e2));
+	float a(Nz::Vector3f::DotProduct(e1, h));
 
 	if (a == 0)
 		return std::make_pair(false, Nz::Vector3f());
 
 	float f(1 / a);
 	Nz::Vector3f s(p - v0);
-	float u(f*dot(s, h));
+	float u(f*Nz::Vector3f::DotProduct(s, h));
 	if (u < 0 || u > 1)
 		return std::make_pair(false, Nz::Vector3f());
 
-	Nz::Vector3f q(cross(s, e1));
-	float v(f*dot(d, q));
+	Nz::Vector3f q(Nz::Vector3f::CrossProduct(s, e1));
+	float v(f*Nz::Vector3f::DotProduct(d, q));
 	if (v < 0 || u+v > 1)
 		return std::make_pair(false, Nz::Vector3f());
 
-	float t(f*dot(e2, q));
+	float t(f*Nz::Vector3f::DotProduct(e2, q));
 	if (t < 0)
 		return std::make_pair(false, Nz::Vector3f());
 
@@ -64,12 +100,12 @@ std::pair<bool, Nz::Vector3f> intersect(const Nz::Vector3f & v0, const Nz::Vecto
 Nz::Vector3f proportions(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c, const Nz::Vector3f & pos)
 {
 	Nz::Vector3f distancesLine(pointLineDistance(b, c, pos), pointLineDistance(a, c, pos), pointLineDistance(a, b, pos));
-	return Nz::Vector3f(distancesLine.x / (distancesLine.x + norm(pos - a)), distancesLine.y / (distancesLine.y + norm(pos - b)), distancesLine.z / (distancesLine.z + norm(pos - c)));
+	return Nz::Vector3f(distancesLine.x / (distancesLine.x + (pos - a).GetLength()), distancesLine.y / (distancesLine.y + (pos - b).GetLength()), distancesLine.z / (distancesLine.z + (pos - c).GetLength())).Normalize();
 }
 
 float pointLineDistance(const Nz::Vector3f & line1, const Nz::Vector3f & line2, const Nz::Vector3f & pos)
 {
-	return norm(cross(pos - line1, pos - line2)) / norm(line2 - line1);
+	return (Nz::Vector3f::CrossProduct(pos - line1, pos - line2)).GetLength() / (line2 - line1).GetLength();
 }
 
 bool isLeft(const Nz::Vector3f & dir, const Nz::Vector3f line, const Nz::Vector3f & normal)

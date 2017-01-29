@@ -16,7 +16,7 @@ SphereSurface<float> perlinPass(T engine, float max, unsigned int pointCount)
 	for (unsigned int i(0); i < pointCount; i++)
 		s.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)), d(engine));
 
-	relaxation(s, 3);
+	relax(s);
 	s.buildMap();
 	return s;
 }
@@ -41,6 +41,9 @@ SphereSurface<float> perlin(const PerlinData & data)
 	std::cout << "Stack pass ..." << std::endl;
 
 	SphereSurface<float> s(surfaces.back());
+	for (auto it2(s.blocksBegin()); it2 != s.blocksEnd(); it2++)
+		it2->data = 0;
+
 	surfaces.pop_back();
 	unsigned int index(0);
 	for (const auto & surface : surfaces)

@@ -15,17 +15,23 @@
 
 int main()
 {
+	Nz::Color c;
 	Nz::Clock c;
-	/*PerlinData d(0);
-	d.passCount = 5;
-	d.passDivisor = 2;
-	d.passPointMultiplier = 2;
-	d.pointCount = 500;
+	PerlinData d(0);
+	d.passCount = 2;
+	d.passDivisor = 400;
+	d.passPointMultiplier = 20;
+	d.pointCount = 200;
 	d.amplitude = 0.1f;
 	SphereSurface<float> surface(perlin(d));
-	surface.setRadius(3);*/
+	surface.setRadius(3);
 
-	SphericalDistribution<float> pitchDistrib;
+	/*for (auto it(surface.blocksBegin()); it != surface.blocksEnd(); it++)
+		if (it->data < 0)
+			it->data = -0.1;
+		else it->data = 0.1;*/
+
+	/*SphericalDistribution<float> pitchDistrib;
 	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
 	std::mt19937 engine;
 
@@ -38,7 +44,7 @@ int main()
 	SphereSurface<float> surface2(relax(surface));
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);
-	surface2 = relax(surface2);
+	surface2 = relax(surface2);*/
 
 	std::cout << c.GetSeconds() << std::endl;
 
@@ -63,14 +69,14 @@ int main()
 	Ndk::NodeComponent& planetNode = planet->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics = planet->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics.Attach(model);
-	planetNode.SetPosition(-4, 0, -10);
+	planetNode.SetPosition(0, 0, -10);
 
-	Nz::ModelRef model2 = render(surface2);
+	/*Nz::ModelRef model2 = render(surface2);
 	Ndk::EntityHandle planet2 = world.CreateEntity();
 	Ndk::NodeComponent& planetNode2 = planet2->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics2 = planet2->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics2.Attach(model2);
-	planetNode2.SetPosition(4, 0, -10);
+	planetNode2.SetPosition(4, 0, -10);*/
 
 	Ndk::EntityHandle light = world.CreateEntity();
 	Ndk::NodeComponent& lightNode = light->AddComponent<Ndk::NodeComponent>();
@@ -85,7 +91,7 @@ int main()
 	while (application.Run())
 	{
 		planetNode.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds()*10, c.GetSeconds()*13.2f, 0)));
-		planetNode2.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds() * 10, c.GetSeconds()*13.2f, 0)));
+		//planetNode2.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds() * 10, c.GetSeconds()*13.2f, 0)));
 		mainWindow.Display();
 	}
 
