@@ -54,6 +54,9 @@ private:
 template <typename T>
 SphereSurface<T> relaxation(const SphereSurface<T> & m, float diviser = 1);
 
+template<typename T>
+SphereSurface<T> relax(const SphereSurface<T> & s);
+
 #include "SphereSurface.inl"
 
 #endif // SPHERESURFACE_H

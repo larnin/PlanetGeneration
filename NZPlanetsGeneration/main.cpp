@@ -16,25 +16,29 @@
 int main()
 {
 	Nz::Clock c;
-	PerlinData d(0);
+	/*PerlinData d(0);
 	d.passCount = 5;
 	d.passDivisor = 2;
 	d.passPointMultiplier = 2;
 	d.pointCount = 500;
 	d.amplitude = 0.1f;
 	SphereSurface<float> surface(perlin(d));
-	surface.setRadius(3);
+	surface.setRadius(3);*/
 
-	/*SphericalDistribution<float> pitchDistrib;
+	SphericalDistribution<float> pitchDistrib;
 	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
 	std::mt19937 engine;
 
 	SphereSurface<float> surface(3);
 
-	for (unsigned int i(0); i < 1000; i++)
+	for (unsigned int i(0); i < 2000; i++)
 		surface.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)));
 
-	surface.buildMap();*/
+	surface.buildMap();
+	SphereSurface<float> surface2(relax(surface));
+	surface2 = relax(surface2);
+	surface2 = relax(surface2);
+	surface2 = relax(surface2);
 
 	std::cout << c.GetSeconds() << std::endl;
 
@@ -42,6 +46,7 @@ int main()
 
 	Nz::RenderWindow& mainWindow = application.AddWindow<Nz::RenderWindow>();
 	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default, Nz::ContextParameters(Nz::RenderTargetParameters(1)));
+	mainWindow.SetFramerateLimit(60);
 
 	Ndk::World& world = application.AddWorld();
 	world.GetSystem<Ndk::RenderSystem>().SetGlobalUp(Nz::Vector3f::Up());
@@ -58,7 +63,14 @@ int main()
 	Ndk::NodeComponent& planetNode = planet->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics = planet->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics.Attach(model);
-	planetNode.SetPosition(0, 0, -10);
+	planetNode.SetPosition(-4, 0, -10);
+
+	Nz::ModelRef model2 = render(surface2);
+	Ndk::EntityHandle planet2 = world.CreateEntity();
+	Ndk::NodeComponent& planetNode2 = planet2->AddComponent<Ndk::NodeComponent>();
+	Ndk::GraphicsComponent& planetGraphics2 = planet2->AddComponent<Ndk::GraphicsComponent>();
+	planetGraphics2.Attach(model2);
+	planetNode2.SetPosition(4, 0, -10);
 
 	Ndk::EntityHandle light = world.CreateEntity();
 	Ndk::NodeComponent& lightNode = light->AddComponent<Ndk::NodeComponent>();
@@ -73,6 +85,7 @@ int main()
 	while (application.Run())
 	{
 		planetNode.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds()*10, c.GetSeconds()*13.2f, 0)));
+		planetNode2.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds() * 10, c.GetSeconds()*13.2f, 0)));
 		mainWindow.Display();
 	}
 

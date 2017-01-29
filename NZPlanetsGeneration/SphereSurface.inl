@@ -243,3 +243,38 @@ SphereSurface<T> relaxation(const SphereSurface<T> & m, float diviser)
 	return s;
 }
 
+template<typename T>
+SphereSurface<T> relax(const SphereSurface<T> & s)
+{
+	SphereSurface<T> s2(s.radius());
+
+	for (auto it(s.blocksBegin()); it != s.blocksEnd(); it++)
+	{
+		std::vector<unsigned int> connectedPoints;
+		unsigned int index(std::distance(s.blocksBegin(), it));
+
+		for (auto it2(s.trianglesBegin()); it2 != s.trianglesEnd(); it2++)
+		{
+			if (it2->block1 == index || it2->block2 == index || it2->block3 == index)
+			{
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), it2->block1) == connectedPoints.end())
+					connectedPoints.push_back(it2->block1);
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), it2->block2) == connectedPoints.end())
+					connectedPoints.push_back(it2->block2);
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), it2->block3) == connectedPoints.end())
+					connectedPoints.push_back(it2->block3);
+			}
+		}
+
+		Nz::Vector3f pos(Nz::Vector3f::Zero());
+		for (unsigned int point : connectedPoints)
+			pos += toVector3(std::next(s.blocksBegin(), point)->pos);
+		pos /= connectedPoints.size();
+
+		s2.addBlock(toSpherePoint(pos), it->data);
+	}
+
+	s2.buildMap();
+
+	return s2;
+}
