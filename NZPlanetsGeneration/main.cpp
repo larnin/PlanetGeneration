@@ -15,16 +15,15 @@
 
 int main()
 {
-	Nz::Color c;
 	Nz::Clock c;
-	PerlinData d(0);
+	/*PerlinData d(0);
 	d.passCount = 2;
 	d.passDivisor = 400;
 	d.passPointMultiplier = 20;
 	d.pointCount = 200;
 	d.amplitude = 0.1f;
 	SphereSurface<float> surface(perlin(d));
-	surface.setRadius(3);
+	surface.setRadius(3);*/
 
 	/*for (auto it(surface.blocksBegin()); it != surface.blocksEnd(); it++)
 		if (it->data < 0)
@@ -45,6 +44,13 @@ int main()
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);*/
+
+	WorldMakerData d(1, 5000, 200);
+	d.biomes.push_back(Biome(0, 0, Nz::Color(66, 134, 244), BiomeType::LAKE));
+	d.biomes.push_back(Biome(0, 0, Nz::Color(44, 69, 170), BiomeType::OCEAN));
+	d.biomes.push_back(Biome(0, 0, Nz::Color(175, 117, 75), BiomeType::GROUND));
+	Planet surface(createWorld(d));
+	surface.setRadius(3);
 
 	std::cout << c.GetSeconds() << std::endl;
 

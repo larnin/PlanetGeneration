@@ -5,6 +5,7 @@
 #include <Nazara/Math/Vector3.hpp>
 #include <Nazara/Math/Vector2.hpp>
 #include <utility>
+#include <Nazara/Core/Color.hpp>
 #include "spherepoint.h"
 
 float angle(const Nz::Vector2f & vect);
@@ -35,5 +36,7 @@ bool isNormalOut(const Nz::Vector3f & pos1, const Nz::Vector3f & pos2, const Nz:
 bool isLeft(const Nz::Vector3f & dir, const Nz::Vector3f line, const Nz::Vector3f & normal);
 
 bool pointOnTetrahedron(Nz::Vector3f a, Nz::Vector3f b, Nz::Vector3f c, Nz::Vector3f d, Nz::Vector3f point);
+
+Nz::Vector2f colorToUV(const Nz::Color & c);
 
 #endif // UTILITIES_H

@@ -40,7 +40,7 @@ public:
 	template <typename U>
 	SphereSurface<U> clone(U defaultValue = U());
 
-private:
+protected:
 	void addTriangle(unsigned int a, unsigned int b, unsigned int c);
 
 	float m_radius;

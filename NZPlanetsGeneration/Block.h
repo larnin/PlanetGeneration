@@ -13,6 +13,8 @@ struct SphereBlock
 	SpherePoint pos;
 
 	T data;
+
+	std::vector<unsigned int> triangles;
 };
 
 struct SphereTriangle
@@ -32,10 +34,16 @@ struct SphereTriangle
 
 struct BlockInfo
 {
-	BlockInfo() : height(0), moisture(0) {}
+	BlockInfo() : height(0), moisture(0), biomeIndex(0) {}
+	BlockInfo(float _height, float _moisture, unsigned int _biomeIndex)
+		: height(_height)
+		, moisture(_moisture)
+		, biomeIndex(_biomeIndex)
+	{}
 
 	float height;
 	float moisture;
+	unsigned int biomeIndex;
 };
 
 //#include "block.tpp"

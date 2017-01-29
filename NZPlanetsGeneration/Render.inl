@@ -88,10 +88,3 @@ unsigned int indexCount(const SphereSurface<T> & surface)
 {
 	return std::distance(surface.trianglesBegin(), surface.trianglesEnd())*3;
 }
-
-template<>
-Nz::Vector3f offset(const SphereBlock<float> & point, float radius)
-{
-	Nz::Vector3f pos(toVector3(point.pos));
-	return pos.Normalize()*radius*point.data;
-}

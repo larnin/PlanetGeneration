@@ -2,7 +2,11 @@
 #include "sphericaldistribution.h"
 #include <random>
 #include <vector>
+#include <deque>
+#include <array>
 #include <iostream>
+#include <cassert>
+#include <algorithm>
 
 template <typename T>
 SphereSurface<float> perlinPass(T engine, float max, unsigned int pointCount)
@@ -73,4 +77,104 @@ SphereSurface<float> perlin(const PerlinData & data)
 	}
 	std::cout << "end" << std::endl;
 	return s;
+}
+
+void placeWaterBiome(Planet & p, unsigned int startPoint, unsigned int oceanBiomeIndex, unsigned int lakeBiomeIndex, unsigned int maxLakeSize, float waterLevel)
+{
+	std::deque<unsigned int> toUpdateList;
+	toUpdateList.push_back(startPoint);
+	std::vector<unsigned int> points;
+
+	while (!toUpdateList.empty())
+	{
+		unsigned int index = toUpdateList.front();
+
+		auto point(std::next(p.blocksBegin(), index));
+		for (unsigned int triangleIndex : point->triangles)
+		{
+			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
+			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
+			for (auto i : indexs)
+			{
+				auto block(std::next(p.blocksBegin(), i));
+				if (block->data.height > waterLevel)
+					continue;
+
+				if (std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end() && std::find(points.begin(), points.end(), i) == points.end())
+					toUpdateList.push_back(i);
+			}
+		}
+
+		points.push_back(index);
+		toUpdateList.pop_front();
+	}
+
+	unsigned int biomeIndex(lakeBiomeIndex);
+	if (points.size() > maxLakeSize)
+		biomeIndex = oceanBiomeIndex;
+	for (unsigned int point : points)
+		std::next(p.blocksBegin(), point)->data.biomeIndex = biomeIndex;
+
+	std::cout << points.size() << std::endl;
+}
+
+Planet createWorld(WorldMakerData data)
+{
+	//compute preconditions
+	assert(!data.biomes.empty());
+	auto oceanBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
+	auto lakeBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::LAKE; }));
+
+	if (oceanBiomeIt == data.biomes.end() || lakeBiomeIt == data.biomes.end())
+		data.haveWater = false;
+	if (data.waterLevel < 0)
+		data.waterLevel = 0;
+	if (data.waterLevel > 1)
+		data.waterLevel = 1;
+
+	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
+	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
+
+	data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::NONE));
+	unsigned int noBiomeIndex(data.biomes.size() - 1);
+	//-----
+
+	PerlinData perlinData(data.seed);
+	perlinData.passCount = 2;
+	perlinData.passDivisor = 1000;
+	perlinData.passPointMultiplier = data.pointsCount / data.carvingLevel;
+	perlinData.pointCount = data.carvingLevel;
+	perlinData.amplitude = 0.1f;
+	SphereSurface<float> noise(perlin(perlinData));
+	
+	Planet p(Planet::clone(noise, data.biomes, BlockInfo(0, 0, noBiomeIndex)));
+	for (unsigned int i(0); i < std::distance(p.blocksBegin(), p.blocksEnd()); i++)
+		std::next(p.blocksBegin(), i)->data.height = std::next(noise.blocksBegin(), i)->data;
+
+	if (data.haveWater)
+	{
+		float realWaterHeight;
+
+		{
+			std::vector<unsigned int> sortedNoizePointsByElevation;
+			for (unsigned int i(0); i < (unsigned int)(std::distance(noise.blocksBegin(), noise.blocksEnd())); i++)
+				sortedNoizePointsByElevation.push_back(i);
+			std::sort(sortedNoizePointsByElevation.begin(), sortedNoizePointsByElevation.end(), [&noise](unsigned int a, unsigned int b)
+			{
+				return std::next(noise.blocksBegin(), a)->data < std::next(noise.blocksBegin(), b)->data;
+			});
+			unsigned int index(data.waterLevel*sortedNoizePointsByElevation.size());
+			if (index >= sortedNoizePointsByElevation.size())
+				index = sortedNoizePointsByElevation.size() - 1;
+			realWaterHeight = std::next(noise.blocksBegin(), sortedNoizePointsByElevation[index])->data;
+		}
+
+		for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+		{
+			if (it->data.height < realWaterHeight && it->data.biomeIndex == noBiomeIndex)
+				placeWaterBiome(p, std::distance(p.blocksBegin(), it), oceanBiomeIndex, lakeBiomeIndex, data.maxLakeSize, realWaterHeight);
+		}
+	}
+
+	return p;
 }

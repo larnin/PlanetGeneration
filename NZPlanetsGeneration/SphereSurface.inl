@@ -30,6 +30,9 @@ void SphereSurface<T>::buildMap()
 	if (m_builded)
 		return;
 
+	for (auto & b : m_blocks)
+		b.triangles.clear();
+
 	std::vector<Nz::Vector3f> points;
 	for (unsigned int i(0); i < m_blocks.size(); i++)
 		points.push_back(toVector3(m_blocks[i].pos));
@@ -139,6 +142,15 @@ void SphereSurface<T>::buildMap()
 
 	for (const auto & t : triangles)
 		addTriangle(t.a, t.b, t.c);
+
+	for (unsigned int i(0); i < triangles.size(); i++)
+	{
+		const LocalTriangle &t(triangles[i]);
+		addTriangle(t.a, t.b, t.c);
+		m_blocks[t.a].triangles.push_back(i);
+		m_blocks[t.b].triangles.push_back(i);
+		m_blocks[t.c].triangles.push_back(i);
+	}
 
 	m_builded = true;
 }

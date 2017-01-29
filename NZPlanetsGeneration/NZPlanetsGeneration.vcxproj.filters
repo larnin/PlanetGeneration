@@ -32,6 +32,9 @@
     <ClCompile Include="Biome.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Planet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Block.h">
@@ -61,12 +64,18 @@
     <ClInclude Include="Biome.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Planet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Render.inl">
       <Filter>Template Files</Filter>
     </None>
     <None Include="Biome.inl">
+      <Filter>Template Files</Filter>
+    </None>
+    <None Include="Planet.inl">
       <Filter>Template Files</Filter>
     </None>
   </ItemGroup>

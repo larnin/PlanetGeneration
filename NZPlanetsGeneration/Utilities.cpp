@@ -44,17 +44,6 @@ bool isNormalOut(const Nz::Vector3f & pos1, const Nz::Vector3f & pos2, const Nz:
 	return Nz::Vector3f::DotProduct(dir, normal) > 0;
 }
 
-
-/*Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b)
-{
-	return Nz::Vector3f(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
-}
-
-float dot(const Nz::Vector3f & a, const Nz::Vector3f & b)
-{
-	return a.x*b.x + a.y*b.y + a.z*b.z;
-}*/
-
 Nz::Vector3f triangleOmega(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c)
 {
 	Nz::Vector3f ac(c - a);
@@ -133,4 +122,11 @@ bool pointOnTetrahedron(Nz::Vector3f a,Nz::Vector3f b, Nz::Vector3f c, Nz::Vecto
 	});
 
 	return lambda(a, b, c, point) && lambda(a, b, d, point) && lambda(a, c, d, point) && lambda(b, c, d, point);
+}
+
+Nz::Vector2f colorToUV(const Nz::Color & c)
+{
+	Nz::Vector2f pos(c.r, c.g);
+	Nz::Vector2f bPos(c.b % 16, c.b / 16);
+	return (pos + bPos * 256 + Nz::Vector2f(0.5f, 0.5f)) / 4096;
 }
