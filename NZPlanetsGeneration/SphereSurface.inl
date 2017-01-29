@@ -246,6 +246,9 @@ SphereSurface<T> relaxation(const SphereSurface<T> & m, float diviser)
 template<typename T>
 SphereSurface<T> relax(const SphereSurface<T> & s)
 {
+	if (!s.builded())
+		return s;
+
 	SphereSurface<T> s2(s.radius());
 
 	for (auto it(s.blocksBegin()); it != s.blocksEnd(); it++)
