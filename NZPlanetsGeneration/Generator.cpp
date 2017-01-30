@@ -123,21 +123,21 @@ void createElevation(Planet & p)
 
 	float unit = sqrt(std::distance(p.blocksBegin(), p.blocksEnd()));
 
-	for (unsigned int index(0); index < std::distance(p.blocksBegin(), p.blocksEnd()); index++)
+	for (unsigned int index(0); index < p.blockCount(); index++)
 	{
-		auto point(std::next(p.blocksBegin(), index));
-		if (p.biome(point->data.biomeIndex).type() != BiomeType::NONE)
+		auto point(p.block(index));
+		if (p.biome(point.data.biomeIndex).type() != BiomeType::NONE)
 			continue;
 
 		bool toAdd(false);
-		for (unsigned int triangleIndex : point->triangles)
+		for (unsigned int triangleIndex : point.triangles)
 		{
-			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
-			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
+			auto& triangle(p.triangle(triangleIndex));
+			std::array<unsigned int, 3> indexs{ triangle.block1, triangle.block2, triangle.block3 };
 			for (auto i : indexs)
 			{
-				auto block(std::next(p.blocksBegin(), i));
-				if (p.biome(block->data.biomeIndex).type() == BiomeType::OCEAN)
+				auto& block(p.block(i));
+				if (p.biome(block.data.biomeIndex).type() == BiomeType::OCEAN)
 				{
 					toAdd = true;
 					toUpdateList.push_back(i); //add water near of ground
@@ -146,28 +146,25 @@ void createElevation(Planet & p)
 		}
 
 		if (toAdd)
-		{
 			toUpdateList.push_back(index); //add ground near of water
-		}
 	}
 
 	while (!toUpdateList.empty())
 	{
 		unsigned int index = toUpdateList.front();
 
-		auto point(std::next(p.blocksBegin(), index));
-		if (p.biome(point->data.biomeIndex).type() != BiomeType::NONE)
-			continue;
+		auto& point(p.block(index));
+		const Biome& currentBiome(p.biome(point.data.biomeIndex));
 
 		std::vector<unsigned int> connectedPoints;
 		std::vector<unsigned int> validConnectedPoints;
-		for (unsigned int triangleIndex : point->triangles)
+		for (unsigned int triangleIndex : point.triangles)
 		{
-			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
-			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
+			auto& triangle(p.triangle(triangleIndex));
+			std::array<unsigned int, 3> indexs{ triangle.block1, triangle.block2, triangle.block3 };
 			for (unsigned int i : indexs)
 			{
-				if (std::find(connectedPoints.begin(), connectedPoints.end(), triangle->block1) != connectedPoints.end())
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
 					continue;
 				connectedPoints.push_back(i);
 				if (std::find(points.begin(), points.end(), i) != points.end())
@@ -175,12 +172,113 @@ void createElevation(Planet & p)
 			}
 		}
 
-		//todo
-		// create elevation of the current point (lower point + distance)
-		// add too hight and uncomputed points 
+		bool found(false);
+		bool contactWithOtherBiome(false);
+		unsigned int bestIndex(0);
+		SphereBlock<BlockInfo>* bestBlock(nullptr);
+		float bestElevation(0);
+		Nz::Vector3f pos(toVector3(point.pos));
+
+		for (unsigned int i : validConnectedPoints)
+		{
+			if (i == index)
+				continue;
+
+			auto & block(p.block(i));
+			const auto & biome(p.biome(block.data.biomeIndex));
+			float length((pos - toVector3(block.pos)).GetSquaredLength());
+
+			if (currentBiome.type() == BiomeType::OCEAN)
+			{
+				float elevation(block.data.height - sqrt(length)*unit);
+				if (!found || elevation > bestElevation)
+				{
+					found = true;
+					bestBlock = &block;
+					bestIndex = i;
+					bestElevation = elevation;
+					continue;
+				}
+			}
+			else if (currentBiome.type() == BiomeType::NONE)
+			{
+				float elevation(block.data.height + sqrt(length)*unit);
+				if (!found || elevation < bestElevation)
+				{
+					found = true;
+					bestBlock = &block;
+					bestIndex = i;
+					bestElevation = elevation;
+					continue;
+				}
+			}
+			else if (currentBiome.type() == BiomeType::LAKE)
+			{
+				if (!found || block.data.height < bestElevation)
+				{
+					found = true;
+					bestBlock = &block;
+					bestIndex = i;
+					bestElevation = block.data.height;
+					continue;
+				}
+			}
+		}
+
+		for (unsigned int i : connectedPoints)
+		{
+			if (i == index)
+				continue;
+
+			if (std::find(validConnectedPoints.begin(), validConnectedPoints.end(), 1) != validConnectedPoints.end())
+				continue;
+
+			auto & block(p.block(index));
+			const auto & biome(p.biome(block.data.biomeIndex));
+			float length((pos - toVector3(block.pos)).GetSquaredLength());
+
+			if (currentBiome.type() == BiomeType::OCEAN)
+			{
+				if (biome.type() == BiomeType::NONE)
+				{
+					if (!found || !contactWithOtherBiome || length < (pos - toVector3(bestBlock->pos)).GetSquaredLength())
+					{
+						found = true;
+						bestBlock = &block;
+						bestIndex = i;
+						bestElevation = -sqrt(length)*unit / 2;
+					}
+					contactWithOtherBiome = true;
+					continue;
+				}
+			}
+			else if (currentBiome.type() == BiomeType::NONE)
+			{
+				if (biome.type() == BiomeType::OCEAN)
+				{
+					if (!found || !contactWithOtherBiome || length < (pos - toVector3(bestBlock->pos)).GetSquaredLength())
+					{
+						found = true;
+						bestBlock = &block;
+						bestIndex = i;
+						bestElevation = sqrt(length)*unit / 2;
+					}
+					contactWithOtherBiome = true;
+					continue;
+				}
+			}
+		}
+
+		point.data.height = bestElevation;
+		for (unsigned int i : connectedPoints)
+		{
+			if (std::find(points.begin(), points.end(), i) == points.end() && std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end())
+				toUpdateList.push_back(i);
+		}
 
 		points.push_back(index);
 		toUpdateList.pop_front();
+		std::cout << bestElevation << std::endl;
 	}
 }
 
@@ -242,7 +340,16 @@ Planet createWorld(WorldMakerData data)
 		}
 	}
 
-	
+	createElevation(p);
+	float min = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
+	float max = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
+
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+	{
+		if (it->data.height < 0)
+			it->data.height = 0;// *= data.maxDepth / (-min);
+		else it->data.height *= data.maxHeight/max;
+	}
 
 	return p;
 }

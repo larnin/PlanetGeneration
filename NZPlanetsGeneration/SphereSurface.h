@@ -27,15 +27,22 @@ public:
 	//void buildMap2();
 	bool builded() const { return m_builded; }
 
+	unsigned int blockCount() const { return m_blocks.size(); }
+	unsigned int triangleCount() const { return m_triangles.size(); }
+
 	typename std::vector<SphereBlock<T>>::const_iterator blocksBegin() const { return m_blocks.begin(); }
 	typename std::vector<SphereBlock<T>>::iterator blocksBegin() { return m_blocks.begin(); }
 	typename std::vector<SphereBlock<T>>::const_iterator blocksEnd() const { return m_blocks.end(); }
 	typename std::vector<SphereBlock<T>>::iterator blocksEnd() { return m_blocks.end(); }
+	SphereBlock<T> & block(unsigned int index) { return m_blocks[index]; }
+	const SphereBlock<T> & block(unsigned int index) const { return m_blocks[index]; }
 
 	std::vector<SphereTriangle>::const_iterator trianglesBegin() const { return m_triangles.begin(); }
 	std::vector<SphereTriangle>::iterator trianglesBegin() { return m_triangles.begin(); }
 	std::vector<SphereTriangle>::const_iterator trianglesEnd() const { if (!builded()) return m_triangles.end(); return m_triangles.end(); }
 	std::vector<SphereTriangle>::iterator trianglesEnd() { if (!builded()) return m_triangles.end(); return m_triangles.end(); }
+	SphereTriangle & triangle(unsigned int index) { return m_triangles[index]; }
+	const SphereTriangle & triangle(unsigned int index) const { return m_triangles[index]; }
 
 	template <typename U>
 	SphereSurface<U> clone(U defaultValue = U());

@@ -45,10 +45,12 @@ int main()
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);*/
 
-	WorldMakerData d(1, 5000, 200);
+	WorldMakerData d(3, 10000, 500);
 	d.biomes.push_back(Biome(0, 0, Nz::Color(66, 134, 244), BiomeType::LAKE));
 	d.biomes.push_back(Biome(0, 0, Nz::Color(44, 69, 170), BiomeType::OCEAN));
 	d.biomes.push_back(Biome(0, 0, Nz::Color(175, 117, 75), BiomeType::GROUND));
+	d.maxHeight = 0.2f;
+	d.maxDepth = 0.2f;
 	Planet surface(createWorld(d));
 	surface.setRadius(3);
 
