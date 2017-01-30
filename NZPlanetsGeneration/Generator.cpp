@@ -126,7 +126,7 @@ void createElevation(Planet & p)
 	for (unsigned int index(0); index < std::distance(p.blocksBegin(), p.blocksEnd()); index++)
 	{
 		auto point(std::next(p.blocksBegin(), index));
-		if (p.biome(point->data.biomeIndex).type != BiomeType::NONE)
+		if (p.biome(point->data.biomeIndex).type() != BiomeType::NONE)
 			continue;
 
 		bool toAdd(false);
@@ -137,7 +137,7 @@ void createElevation(Planet & p)
 			for (auto i : indexs)
 			{
 				auto block(std::next(p.blocksBegin(), i));
-				if (p.biome(block->data.biomeIndex).type == BiomeType::OCEAN)
+				if (p.biome(block->data.biomeIndex).type() == BiomeType::OCEAN)
 				{
 					toAdd = true;
 					toUpdateList.push_back(i); //add water near of ground
@@ -156,7 +156,7 @@ void createElevation(Planet & p)
 		unsigned int index = toUpdateList.front();
 
 		auto point(std::next(p.blocksBegin(), index));
-		if (p.biome(point->data.biomeIndex).type != BiomeType::NONE)
+		if (p.biome(point->data.biomeIndex).type() != BiomeType::NONE)
 			continue;
 
 		std::vector<unsigned int> connectedPoints;
@@ -201,7 +201,7 @@ Planet createWorld(WorldMakerData data)
 	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
 	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
 
-	data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::NONE));
+	data.biomes.push_back(Biome(0, 0, Nz::Color::Red, BiomeType::NONE));
 	unsigned int noBiomeIndex(data.biomes.size() - 1);
 	//-----
 
