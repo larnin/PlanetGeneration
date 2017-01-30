@@ -89,7 +89,9 @@ std::pair<bool, Nz::Vector3f> intersect(const Nz::Vector3f & v0, const Nz::Vecto
 Nz::Vector3f proportions(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c, const Nz::Vector3f & pos)
 {
 	Nz::Vector3f distancesLine(pointLineDistance(b, c, pos), pointLineDistance(a, c, pos), pointLineDistance(a, b, pos));
-	return Nz::Vector3f(distancesLine.x / (distancesLine.x + (pos - a).GetLength()), distancesLine.y / (distancesLine.y + (pos - b).GetLength()), distancesLine.z / (distancesLine.z + (pos - c).GetLength())).Normalize();
+	return Nz::Vector3f(distancesLine.x / (distancesLine.x + (pos - a).GetLength())
+					  , distancesLine.y / (distancesLine.y + (pos - b).GetLength())
+					  , distancesLine.z / (distancesLine.z + (pos - c).GetLength()));
 }
 
 float pointLineDistance(const Nz::Vector3f & line1, const Nz::Vector3f & line2, const Nz::Vector3f & pos)

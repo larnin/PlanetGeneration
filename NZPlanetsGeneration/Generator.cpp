@@ -114,8 +114,74 @@ void placeWaterBiome(Planet & p, unsigned int startPoint, unsigned int oceanBiom
 		biomeIndex = oceanBiomeIndex;
 	for (unsigned int point : points)
 		std::next(p.blocksBegin(), point)->data.biomeIndex = biomeIndex;
+}
 
-	std::cout << points.size() << std::endl;
+void createElevation(Planet & p)
+{
+	std::deque<unsigned int> toUpdateList;
+	std::vector<unsigned int> points;
+
+	float unit = sqrt(std::distance(p.blocksBegin(), p.blocksEnd()));
+
+	for (unsigned int index(0); index < std::distance(p.blocksBegin(), p.blocksEnd()); index++)
+	{
+		auto point(std::next(p.blocksBegin(), index));
+		if (p.biome(point->data.biomeIndex).type != BiomeType::NONE)
+			continue;
+
+		bool toAdd(false);
+		for (unsigned int triangleIndex : point->triangles)
+		{
+			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
+			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
+			for (auto i : indexs)
+			{
+				auto block(std::next(p.blocksBegin(), i));
+				if (p.biome(block->data.biomeIndex).type == BiomeType::OCEAN)
+				{
+					toAdd = true;
+					toUpdateList.push_back(i); //add water near of ground
+				}
+			}
+		}
+
+		if (toAdd)
+		{
+			toUpdateList.push_back(index); //add ground near of water
+		}
+	}
+
+	while (!toUpdateList.empty())
+	{
+		unsigned int index = toUpdateList.front();
+
+		auto point(std::next(p.blocksBegin(), index));
+		if (p.biome(point->data.biomeIndex).type != BiomeType::NONE)
+			continue;
+
+		std::vector<unsigned int> connectedPoints;
+		std::vector<unsigned int> validConnectedPoints;
+		for (unsigned int triangleIndex : point->triangles)
+		{
+			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
+			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
+			for (unsigned int i : indexs)
+			{
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), triangle->block1) != connectedPoints.end())
+					continue;
+				connectedPoints.push_back(i);
+				if (std::find(points.begin(), points.end(), i) != points.end())
+					validConnectedPoints.push_back(i);
+			}
+		}
+
+		//todo
+		// create elevation of the current point (lower point + distance)
+		// add too hight and uncomputed points 
+
+		points.push_back(index);
+		toUpdateList.pop_front();
+	}
 }
 
 Planet createWorld(WorldMakerData data)
@@ -175,6 +241,8 @@ Planet createWorld(WorldMakerData data)
 				placeWaterBiome(p, std::distance(p.blocksBegin(), it), oceanBiomeIndex, lakeBiomeIndex, data.maxLakeSize, realWaterHeight);
 		}
 	}
+
+	
 
 	return p;
 }

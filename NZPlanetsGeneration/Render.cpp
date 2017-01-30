@@ -16,7 +16,7 @@ Nz::ModelRef render(const Planet & p)
 {
 	auto points = indexCount(p);
 
-	Nz::IndexBufferRef indexs = Nz::IndexBuffer::New(false, points, Nz::DataStorage_Hardware);
+	Nz::IndexBufferRef indexs = Nz::IndexBuffer::New(true, points, Nz::DataStorage_Hardware);
 	Nz::VertexBufferRef vertexs = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ_Normal_UV_Tangent), points, Nz::DataStorage_Hardware);
 
 	Nz::BufferMapper<Nz::VertexBuffer> vertexsMapper(vertexs, Nz::BufferAccess_WriteOnly);
