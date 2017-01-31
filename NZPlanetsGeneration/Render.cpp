@@ -77,6 +77,7 @@ Nz::ModelRef render(const Planet & p)
 	Nz::ModelRef model = Nz::Model::New();
 	model->SetMesh(mesh);
 
+	
 	Nz::MaterialRef mat = Nz::Material::New();
 	mat->LoadFromFile("Res/512.png");
 	Nz::TextureSampler tex(mat->GetDiffuseSampler());
@@ -85,6 +86,18 @@ Nz::ModelRef render(const Planet & p)
 	mat->SetFaceFilling(Nz::FaceFilling_Fill);
 	mat->SetShader("PhongLighting");
 	model->SetMaterial(0, mat);
+
+	//alpha for water
+	/*Nz::MaterialRef mat = Nz::Material::New("Translucent3D");
+	mat->SetDiffuseMap("Res/512.png");
+	mat->SetDiffuseColor(Nz::Color(255, 255, 255, 125));
+	Nz::TextureSampler tex(mat->GetDiffuseSampler());
+	tex.SetFilterMode(Nz::SamplerFilter_Nearest);
+	mat->SetDiffuseSampler(tex);
+	mat->EnableFaceCulling(true);
+	mat->SetFaceFilling(Nz::FaceFilling_Fill);
+	mat->SetShader("PhongLighting");
+	model->SetMaterial(0, mat);*/
 
 	return model;
 }

@@ -45,14 +45,17 @@ int main()
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);*/
 
-	WorldMakerData d(3, 10000, 500);
+	WorldMakerData d(1, 10000, 100);
 	d.biomes.push_back(Biome(0, 0, Nz::Color(66, 134, 244), BiomeType::LAKE));
 	d.biomes.push_back(Biome(0, 0, Nz::Color(44, 69, 170), BiomeType::OCEAN));
 	d.biomes.push_back(Biome(0, 0, Nz::Color(175, 117, 75), BiomeType::GROUND));
-	d.maxHeight = 0.2f;
+	d.haveWater = true;
+	d.maxHeight = 0.3f;
 	d.maxDepth = 0.2f;
+	d.elevationAmplification = 2.5f;
+	d.waterDepthAmplification = 0.7f;
 	Planet surface(createWorld(d));
-	surface.setRadius(3);
+	surface.setRadius(4);
 
 	std::cout << c.GetSeconds() << std::endl;
 
@@ -77,14 +80,14 @@ int main()
 	Ndk::NodeComponent& planetNode = planet->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics = planet->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics.Attach(model);
-	planetNode.SetPosition(0, 0, -10);
+	planetNode.SetPosition(1, 0, -10);
 
 	/*Nz::ModelRef model2 = render(surface2);
 	Ndk::EntityHandle planet2 = world.CreateEntity();
 	Ndk::NodeComponent& planetNode2 = planet2->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics2 = planet2->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics2.Attach(model2);
-	planetNode2.SetPosition(4, 0, -10);*/
+	planetNode2.SetPosition(-1, 0, -10);*/
 
 	Ndk::EntityHandle light = world.CreateEntity();
 	Ndk::NodeComponent& lightNode = light->AddComponent<Ndk::NodeComponent>();

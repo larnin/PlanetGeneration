@@ -149,6 +149,14 @@ void createElevation(Planet & p)
 			toUpdateList.push_back(index); //add ground near of water
 	}
 
+	if (toUpdateList.empty())
+	{
+		unsigned int index(std::distance(p.blocksBegin(), std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })));
+		p.block(index).data.height = 0;
+		toUpdateList.push_back(index);
+		points.push_back(index);
+	}
+
 	while (!toUpdateList.empty())
 	{
 		unsigned int index = toUpdateList.front();
@@ -273,12 +281,56 @@ void createElevation(Planet & p)
 		for (unsigned int i : connectedPoints)
 		{
 			if (std::find(points.begin(), points.end(), i) == points.end() && std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end())
+			{
 				toUpdateList.push_back(i);
+				continue;
+			}
+			auto& other(p.block(i));
+			auto& biome(p.biome(other.data.biomeIndex));
+			if (biome.type() == BiomeType::LAKE)
+			{
+				if (other.data.height > point.data.height)
+					toUpdateList.push_back(i);
+			}
+			else if (biome.type() == BiomeType::OCEAN)
+			{
+				if (point.data.height - (pos - toVector3(other.pos)).GetLength()*unit > other.data.height)
+					toUpdateList.push_back(i);
+			}
+			else
+			{
+				if (point.data.height + (pos - toVector3(other.pos)).GetLength()*unit < other.data.height)
+					toUpdateList.push_back(i);
+			}
 		}
 
-		points.push_back(index);
+		if (std::find(points.begin(), points.end(), index) == points.end())
+			points.push_back(index);
 		toUpdateList.pop_front();
-		std::cout << bestElevation << std::endl;
+	}
+}
+
+void placeRivers(Planet & p, unsigned int count, unsigned int seed)
+{
+	std::mt19937 engine(seed);
+	std::uniform_int_distribution<unsigned int> d(0, p.blockCount());
+
+	for (unsigned int i(0); i < count; i++)
+	{
+		River r;
+		for (unsigned int i(0); i < 10; i++)
+		{
+			unsigned int index(d(engine));
+			auto & block(p.block(index));
+			auto & biome(p.biome(block.data.biomeIndex));
+			if (biome.type() == BiomeType::NONE)
+			{
+				r.push_back(index);
+				break;
+			}
+		}
+		if (r.empty())
+			continue;
 	}
 }
 
@@ -287,17 +339,26 @@ Planet createWorld(WorldMakerData data)
 	//compute preconditions
 	assert(!data.biomes.empty());
 	auto oceanBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
+	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
+	if (oceanBiomeIt == data.biomes.end())
+		data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::OCEAN));
 	auto lakeBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::LAKE; }));
+	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
+	if(lakeBiomeIt == data.biomes.end())
+		data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::LAKE));
 
 	if (oceanBiomeIt == data.biomes.end() || lakeBiomeIt == data.biomes.end())
 		data.haveWater = false;
-	if (data.waterLevel < 0)
-		data.waterLevel = 0;
-	if (data.waterLevel > 1)
-		data.waterLevel = 1;
+	if (data.waterLevel < 0.1)
+		data.waterLevel = 0.1;
+	if (data.waterLevel > 0.9)
+		data.waterLevel = 0.9;
+	if (!data.haveWater)
+	{
+		data.waterLevel = 0.5f;
+		data.maxLakeSize = 0;
+	}
 
-	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
-	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
 
 	data.biomes.push_back(Biome(0, 0, Nz::Color::Red, BiomeType::NONE));
 	unsigned int noBiomeIndex(data.biomes.size() - 1);
@@ -315,29 +376,26 @@ Planet createWorld(WorldMakerData data)
 	for (unsigned int i(0); i < std::distance(p.blocksBegin(), p.blocksEnd()); i++)
 		std::next(p.blocksBegin(), i)->data.height = std::next(noise.blocksBegin(), i)->data;
 
-	if (data.haveWater)
+	float realWaterHeight;
+
 	{
-		float realWaterHeight;
-
+		std::vector<unsigned int> sortedNoizePointsByElevation;
+		for (unsigned int i(0); i < (unsigned int)(std::distance(noise.blocksBegin(), noise.blocksEnd())); i++)
+			sortedNoizePointsByElevation.push_back(i);
+		std::sort(sortedNoizePointsByElevation.begin(), sortedNoizePointsByElevation.end(), [&noise](unsigned int a, unsigned int b)
 		{
-			std::vector<unsigned int> sortedNoizePointsByElevation;
-			for (unsigned int i(0); i < (unsigned int)(std::distance(noise.blocksBegin(), noise.blocksEnd())); i++)
-				sortedNoizePointsByElevation.push_back(i);
-			std::sort(sortedNoizePointsByElevation.begin(), sortedNoizePointsByElevation.end(), [&noise](unsigned int a, unsigned int b)
-			{
-				return std::next(noise.blocksBegin(), a)->data < std::next(noise.blocksBegin(), b)->data;
-			});
-			unsigned int index(data.waterLevel*sortedNoizePointsByElevation.size());
-			if (index >= sortedNoizePointsByElevation.size())
-				index = sortedNoizePointsByElevation.size() - 1;
-			realWaterHeight = std::next(noise.blocksBegin(), sortedNoizePointsByElevation[index])->data;
-		}
+			return std::next(noise.blocksBegin(), a)->data < std::next(noise.blocksBegin(), b)->data;
+		});
+		unsigned int index(data.waterLevel*sortedNoizePointsByElevation.size());
+		if (index >= sortedNoizePointsByElevation.size())
+			index = sortedNoizePointsByElevation.size() - 1;
+		realWaterHeight = std::next(noise.blocksBegin(), sortedNoizePointsByElevation[index])->data;
+	}
 
-		for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
-		{
-			if (it->data.height < realWaterHeight && it->data.biomeIndex == noBiomeIndex)
-				placeWaterBiome(p, std::distance(p.blocksBegin(), it), oceanBiomeIndex, lakeBiomeIndex, data.maxLakeSize, realWaterHeight);
-		}
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+	{
+		if (it->data.height < realWaterHeight && it->data.biomeIndex == noBiomeIndex)
+			placeWaterBiome(p, std::distance(p.blocksBegin(), it), oceanBiomeIndex, lakeBiomeIndex, data.maxLakeSize, realWaterHeight);
 	}
 
 	createElevation(p);
@@ -346,10 +404,31 @@ Planet createWorld(WorldMakerData data)
 
 	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
 	{
-		if (it->data.height < 0)
-			it->data.height = 0;// *= data.maxDepth / (-min);
-		else it->data.height *= data.maxHeight/max;
+		if (!data.haveWater)
+		{
+			it->data.height = std::pow((it->data.height - min) / (max - min), data.elevationAmplification)*data.maxHeight;
+			it->data.biomeIndex = noBiomeIndex;
+		}
+		else
+		{
+			if (it->data.height < 0)
+			{
+				it->data.height /= -min;
+				it->data.height = -std::pow(-it->data.height, data.waterDepthAmplification);
+				it->data.height *= data.maxDepth;
+
+			}
+			else
+			{
+				it->data.height /= max;
+				it->data.height = std::pow(it->data.height, data.elevationAmplification);
+				it->data.height *= data.maxHeight;
+			}
+		}
+		
 	}
+
+	placeRivers(p, data.rivierCount, data.seed);
 
 	return p;
 }
