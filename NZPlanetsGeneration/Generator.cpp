@@ -331,6 +331,123 @@ void placeRivers(Planet & p, unsigned int count, unsigned int seed)
 		}
 		if (r.empty())
 			continue;
+
+		while (true)
+		{
+			unsigned int bestIndex(0);
+			float bestHeight(std::numeric_limits<float>::max());
+			std::vector<unsigned int> connectedPoints;
+			for (const auto & triangle : p.block(r.back()).triangles)
+			{
+				const auto & t(p.triangle(triangle));
+				std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
+				for (unsigned int i : indexs)
+				{
+					if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
+						continue;
+					connectedPoints.push_back(i);
+				}
+			}
+
+			for (auto i : connectedPoints)
+			{
+				const auto & b(p.block(i));
+				if (b.data.height < bestHeight)
+				{
+					bestIndex = i;
+					bestHeight = b.data.height;
+				}
+			}
+			if (bestHeight > p.block(r.back()).data.height)
+				break;
+			r.push_back(bestIndex);
+			const auto & b(p.block(bestIndex));
+			if (p.biome(b.data.biomeIndex).type() == BiomeType::OCEAN || p.biome(b.data.biomeIndex).type() == BiomeType::LAKE)
+				break;
+		}
+		p.addRiver(r);
+	}
+}
+
+void createMoisture(Planet & p)
+{
+	std::deque<unsigned int> toUpdateList;
+	std::vector<unsigned int> points;
+
+	for (unsigned int i(0); i < p.riverCount(); i++)
+		for (unsigned int index : p.river(i))
+			if (std::find(toUpdateList.begin(), toUpdateList.end(), index) == toUpdateList.end())
+				toUpdateList.push_back(index);
+
+	while (!toUpdateList.empty())
+	{
+		unsigned int index = toUpdateList.front();
+
+		std::vector<unsigned int> connectedPoints;
+		for (const auto & triangle : p.block(index).triangles)
+		{
+			const auto & t(p.triangle(triangle));
+			std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
+			for (unsigned int i : indexs)
+			{
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
+					continue;
+				if (std::find(points.begin(), points.end(), i) != points.end())
+					continue;
+				connectedPoints.push_back(i);
+			}
+		}
+
+		bool found(false);
+		float bestMoisture(std::numeric_limits<float>::max());
+		auto & block(p.block(index));
+		Nz::Vector3f pos(toVector3(block.pos));
+		for (unsigned int i : connectedPoints)
+		{
+			const auto & b(p.block(i));
+			const auto & biome(p.biome(b.data.biomeIndex));
+			if (biome.type() != BiomeType::NONE)
+				continue;
+			float moisture(b.data.moisture + (toVector3(b.pos) - pos).GetLength());
+			if (moisture < bestMoisture)
+			{
+				found = true;
+				bestMoisture = moisture;
+			}
+		}
+
+		if (found)
+			block.data.moisture = bestMoisture;
+		else block.data.moisture = 0;
+
+		points.push_back(index);
+		toUpdateList.pop_front();
+
+		
+	}
+	float maxMoisture = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
+	float minMoisture = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
+
+	for (unsigned int i(0) ; i < p.blockCount() ; i++)
+	{
+		auto & block(p.block(i));
+		if (std::find(points.begin(), points.end(), i) == points.end())
+			block.data.moisture = maxMoisture;
+
+		block.data.moisture = 1 - ((block.data.moisture - minMoisture) / (maxMoisture - minMoisture));
+	}
+}
+
+void createBiomes(Planet & p)
+{
+	for (unsigned int i(0); i < p.blockCount(); i++)
+	{
+		auto & block(p.block(i));
+		const auto & biome(p.biome(block.data.biomeIndex));
+		if (biome.type() != BiomeType::NONE)
+			continue;
+
+		block.data.biomeIndex = p.nearestBiomeID(block.data.height, block.data.moisture);
 	}
 }
 
@@ -341,11 +458,11 @@ Planet createWorld(WorldMakerData data)
 	auto oceanBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
 	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
 	if (oceanBiomeIt == data.biomes.end())
-		data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::OCEAN));
+		data.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color::Black)));
 	auto lakeBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::LAKE; }));
 	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
 	if(lakeBiomeIt == data.biomes.end())
-		data.biomes.push_back(Biome(0, 0, Nz::Color::Black, BiomeType::LAKE));
+		data.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color::Black)));
 
 	if (oceanBiomeIt == data.biomes.end() || lakeBiomeIt == data.biomes.end())
 		data.haveWater = false;
@@ -359,8 +476,7 @@ Planet createWorld(WorldMakerData data)
 		data.maxLakeSize = 0;
 	}
 
-
-	data.biomes.push_back(Biome(0, 0, Nz::Color::Red, BiomeType::NONE));
+	data.biomes.push_back(Biome(0, 0, BiomeType::NONE, RandomColor(Nz::Color::Red)));
 	unsigned int noBiomeIndex(data.biomes.size() - 1);
 	//-----
 
@@ -429,6 +545,10 @@ Planet createWorld(WorldMakerData data)
 	}
 
 	placeRivers(p, data.rivierCount, data.seed);
+
+	createMoisture(p);
+
+	createBiomes(p);
 
 	return p;
 }

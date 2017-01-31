@@ -7,7 +7,6 @@
 #include "Biome.h"
 #include <vector>
 
-struct WorldMakerData;
 using River = std::vector<unsigned int>;
 
 class Planet : public SphereSurface<BlockInfo>
@@ -24,6 +23,10 @@ public:
 	inline void addRiver(const River & r) { m_rivers.push_back(r); }
 	inline unsigned int riverCount() const { return m_rivers.size(); }
 	inline const River & river(unsigned int id) { return m_rivers[id]; }
+
+	bool isOnRiver(unsigned int blockID) const;
+
+	unsigned int nearestBiomeID(float elevation, float moisture);
 
 private:
 	std::vector<Biome> m_biomes;

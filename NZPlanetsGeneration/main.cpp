@@ -45,10 +45,24 @@ int main()
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);*/
 
-	WorldMakerData d(1, 10000, 100);
-	d.biomes.push_back(Biome(0, 0, Nz::Color(66, 134, 244), BiomeType::LAKE));
-	d.biomes.push_back(Biome(0, 0, Nz::Color(44, 69, 170), BiomeType::OCEAN));
-	d.biomes.push_back(Biome(0, 0, Nz::Color(175, 117, 75), BiomeType::GROUND));
+	WorldMakerData d(0, 10000, 100);
+	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
+	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
+	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
+	d.biomes.push_back(Biome(0.875f, 0.42f, BiomeType::GROUND, RandomColor(Nz::Color(221, 221, 187)))); //tundra
+	d.biomes.push_back(Biome(0.875f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(187, 187, 187)))); //bare
+	d.biomes.push_back(Biome(0.875f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(153, 153, 153)))); //scorched
+	d.biomes.push_back(Biome(0.625f, 0.83f, BiomeType::GROUND, RandomColor(Nz::Color(204, 212, 187)))); //taiga
+	d.biomes.push_back(Biome(0.625f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(196, 204, 187)))); //shrubland
+	d.biomes.push_back(Biome(0.625f, 0.17f, BiomeType::GROUND, RandomColor(Nz::Color(228, 232, 202)))); //temperate desert
+	d.biomes.push_back(Biome(0.375f, 0.92f, BiomeType::GROUND, RandomColor(Nz::Color(164, 196, 168)))); //teperate rain forest
+	d.biomes.push_back(Biome(0.375f, 0.67f, BiomeType::GROUND, RandomColor(Nz::Color(180, 201, 169)))); //temperate deciduous forest
+	d.biomes.push_back(Biome(0.375f, 0.33f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
+	d.biomes.push_back(Biome(0.375f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(228, 232, 202)))); //temperate desert
+	d.biomes.push_back(Biome(0.125f, 0.83f, BiomeType::GROUND, RandomColor(Nz::Color(156, 187, 169)))); //tropical rain forest
+	d.biomes.push_back(Biome(0.125f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(169, 204, 164)))); //tropical seasonial forest
+	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
+	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
 	d.haveWater = true;
 	d.maxHeight = 0.3f;
 	d.maxDepth = 0.2f;
@@ -80,7 +94,7 @@ int main()
 	Ndk::NodeComponent& planetNode = planet->AddComponent<Ndk::NodeComponent>();
 	Ndk::GraphicsComponent& planetGraphics = planet->AddComponent<Ndk::GraphicsComponent>();
 	planetGraphics.Attach(model);
-	planetNode.SetPosition(1, 0, -10);
+	planetNode.SetPosition(0, 0, -10);
 
 	/*Nz::ModelRef model2 = render(surface2);
 	Ndk::EntityHandle planet2 = world.CreateEntity();
