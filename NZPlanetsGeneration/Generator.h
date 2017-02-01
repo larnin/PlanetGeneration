@@ -36,7 +36,7 @@ struct WorldMakerData
 		, pointsCount(_pointCount)
 		, carvingLevel(_carvingLevel)
 		, haveWater(true)
-		, maxLakeSize(_pointCount/100)
+		, maxLakeSize(_pointCount / 100)
 		, waterLevel(0.5f)
 		, rivierCount(10)
 		, elevationAmplification(1.0f)

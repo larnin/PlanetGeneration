@@ -360,6 +360,11 @@ void placeRivers(Planet & p, unsigned int count, unsigned int seed)
 			}
 			if (bestHeight > p.block(r.back()).data.height)
 				break;
+			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
+			{
+				r.push_back(bestIndex);
+				break;
+			}
 			r.push_back(bestIndex);
 			const auto & b(p.block(bestIndex));
 			if (p.biome(b.data.biomeIndex).type() == BiomeType::OCEAN || p.biome(b.data.biomeIndex).type() == BiomeType::LAKE)
@@ -376,25 +381,36 @@ void createMoisture(Planet & p)
 
 	for (unsigned int i(0); i < p.riverCount(); i++)
 		for (unsigned int index : p.river(i))
-			if (std::find(toUpdateList.begin(), toUpdateList.end(), index) == toUpdateList.end())
-				toUpdateList.push_back(index);
+		{
+			if (std::find(points.begin(), points.end(), index) == points.end())
+				points.push_back(index);
+
+			for (const auto & triangle : p.block(index).triangles)
+			{
+				const auto & t(p.triangle(triangle));
+				std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
+
+				for (unsigned int i : indexs)
+					if (std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end() && std::find(points.begin(), points.end(), i) == points.end())
+						toUpdateList.push_back(i);
+			}
+		}
 
 	while (!toUpdateList.empty())
 	{
 		unsigned int index = toUpdateList.front();
 
 		std::vector<unsigned int> connectedPoints;
+		std::vector<unsigned int> allConnectedPoints;
 		for (const auto & triangle : p.block(index).triangles)
 		{
 			const auto & t(p.triangle(triangle));
 			std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
 			for (unsigned int i : indexs)
 			{
-				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
-					continue;
-				if (std::find(points.begin(), points.end(), i) != points.end())
-					continue;
-				connectedPoints.push_back(i);
+				allConnectedPoints.push_back(i);
+				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) == connectedPoints.end() && std::find(points.begin(), points.end(), i) != points.end())
+					connectedPoints.push_back(i);
 			}
 		}
 
@@ -416,6 +432,12 @@ void createMoisture(Planet & p)
 			}
 		}
 
+		for (unsigned int p : allConnectedPoints)
+		{
+			if (std::find(points.begin(), points.end(), p) == points.end() && std::find(toUpdateList.begin(), toUpdateList.end(), p) == toUpdateList.end())
+				toUpdateList.push_back(p);
+		}
+
 		if (found)
 			block.data.moisture = bestMoisture;
 		else block.data.moisture = 0;
@@ -433,13 +455,17 @@ void createMoisture(Planet & p)
 		auto & block(p.block(i));
 		if (std::find(points.begin(), points.end(), i) == points.end())
 			block.data.moisture = maxMoisture;
-
 		block.data.moisture = 1 - ((block.data.moisture - minMoisture) / (maxMoisture - minMoisture));
 	}
 }
 
 void createBiomes(Planet & p)
 {
+	float minElevation = 0;// std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
+	float maxElevation = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
+	float maxMoisture = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
+	float minMoisture = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
+
 	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
 		auto & block(p.block(i));
@@ -447,7 +473,7 @@ void createBiomes(Planet & p)
 		if (biome.type() != BiomeType::NONE)
 			continue;
 
-		block.data.biomeIndex = p.nearestBiomeID(block.data.height, block.data.moisture);
+		block.data.biomeIndex = p.nearestBiomeID((block.data.height-minElevation)/(maxElevation-minElevation), (block.data.moisture-minMoisture)/(maxMoisture-minMoisture));
 	}
 }
 
