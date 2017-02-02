@@ -17,6 +17,8 @@ public:
 
 	template <typename T>
 	static Planet clone(SphereSurface<T> s, const std::vector<Biome> & biomes, BlockInfo block = BlockInfo());
+	template <typename T, typename U>
+	static Planet clone(SphereSurface<T> s, const std::vector<Biome> & biomes, U predicat); // predicat must define BlockInfo operator()(T)
 
 	inline const Biome & biome(unsigned int index) const { return m_biomes[index]; }
 
@@ -26,7 +28,7 @@ public:
 
 	bool isOnRiver(unsigned int blockID) const;
 
-	unsigned int nearestBiomeID(float elevation, float moisture);
+	unsigned int nearestBiomeID(float temperature, float moisture);
 
 private:
 	std::vector<Biome> m_biomes;

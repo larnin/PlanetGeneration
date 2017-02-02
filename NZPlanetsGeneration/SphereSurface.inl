@@ -25,6 +25,24 @@ void SphereSurface<T>::addBlock(const SpherePoint & pos, T value = T())
 }
 
 template <typename T>
+std::vector<unsigned int> SphereSurface<T>::connectedBlocks(unsigned int id)
+{
+	assert(id < m_blocks.size());
+
+	std::vector<unsigned int> list;
+
+	for (unsigned int i : m_blocks[id].triangles)
+	{
+		const auto & t(m_triangles[i]);
+		for(unsigned int index : {t.block1, t.block2, t.block3})
+			if (std::find(list.begin(), list.end(), index) == list.end())
+				list.push_back(index);
+	}
+
+	return list;
+}
+
+template <typename T>
 void SphereSurface<T>::buildMap()
 {
 	if (m_builded)

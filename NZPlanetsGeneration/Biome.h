@@ -45,21 +45,21 @@ class Biome
 {
 public:
 	Biome();
-	Biome(float elevation, float moisture, BiomeType type, const RandomColor & color);
+	Biome(float temperature, float moisture, BiomeType type, const RandomColor & color);
 
 	inline Nz::Color getColor() const { return m_color.getColor(); }
 
 	template <typename T>
 	inline Nz::Color getRandomColor(T & generator) const { return m_color.getRandomColor(); }
 
-	inline float elevation() const { return m_elevation; }
+	inline float temperature() const { return m_temperature; }
 	inline float moisture() const { return m_moisture; }
 	inline BiomeType type() const { return m_type; }
 
 private:
 	RandomColor m_color;
 
-	float m_elevation;
+	float m_temperature;
 	float m_moisture;
 
 	BiomeType m_type;

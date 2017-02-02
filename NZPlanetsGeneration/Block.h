@@ -34,15 +34,17 @@ struct SphereTriangle
 
 struct BlockInfo
 {
-	BlockInfo() : height(0), moisture(0), biomeIndex(0) {}
-	BlockInfo(float _height, float _moisture, unsigned int _biomeIndex)
+	inline BlockInfo() : height(0), moisture(0), temperature(0), biomeIndex(0) {}
+	inline BlockInfo(float _height, float _moisture, float _temperature, unsigned int _biomeIndex)
 		: height(_height)
 		, moisture(_moisture)
+		, temperature(_temperature)
 		, biomeIndex(_biomeIndex)
 	{}
 
 	float height;
 	float moisture;
+	float temperature;
 	unsigned int biomeIndex;
 };
 

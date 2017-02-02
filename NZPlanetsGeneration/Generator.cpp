@@ -294,12 +294,12 @@ void createElevation(Planet & p)
 			}
 			else if (biome.type() == BiomeType::OCEAN)
 			{
-				if (point.data.height - (pos - toVector3(other.pos)).GetLength()*unit > other.data.height)
+				if (point.data.height - (pos - toVector3(other.pos)).GetLength()*unit > other.data.height && currentBiome.type() == BiomeType::OCEAN)
 					toUpdateList.push_back(i);
 			}
 			else
 			{
-				if (point.data.height + (pos - toVector3(other.pos)).GetLength()*unit < other.data.height)
+				if (point.data.height + (pos - toVector3(other.pos)).GetLength()*unit < other.data.height && currentBiome.type() == BiomeType::NONE)
 					toUpdateList.push_back(i);
 			}
 		}
@@ -514,7 +514,7 @@ Planet createWorld(WorldMakerData data)
 	perlinData.amplitude = 0.1f;
 	SphereSurface<float> noise(perlin(perlinData));
 	
-	Planet p(Planet::clone(noise, data.biomes, BlockInfo(0, 0, noBiomeIndex)));
+	Planet p(Planet::clone(noise, data.biomes, BlockInfo(0, 0, 0, noBiomeIndex)));
 	for (unsigned int i(0); i < std::distance(p.blocksBegin(), p.blocksEnd()); i++)
 		std::next(p.blocksBegin(), i)->data.height = std::next(noise.blocksBegin(), i)->data;
 

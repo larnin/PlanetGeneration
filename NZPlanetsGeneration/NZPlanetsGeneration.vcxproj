@@ -151,9 +151,11 @@
     <ClCompile Include="Biome.cpp" />
     <ClCompile Include="Block.cpp" />
     <ClCompile Include="Generator.cpp" />
+    <ClCompile Include="Generator2.cpp" />
     <ClCompile Include="main.cpp" />
     <ClInclude Include="Biome.h" />
     <ClInclude Include="Generator.h" />
+    <ClInclude Include="Generator2.h" />
     <ClInclude Include="Planet.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="SphereSurface.inl">

@@ -16,9 +16,9 @@ bool Planet::isOnRiver(unsigned int blockID) const
 	}) != m_rivers.end();
 }
 
-unsigned int Planet::nearestBiomeID(float elevation, float moisture)
+unsigned int Planet::nearestBiomeID(float temperature, float moisture)
 {
-	Nz::Vector2f pos(elevation, moisture);
+	Nz::Vector2f pos(temperature, moisture);
 
 	unsigned int nearestBiome(0);
 	float minDist(std::numeric_limits<float>::max());
@@ -27,7 +27,7 @@ unsigned int Planet::nearestBiomeID(float elevation, float moisture)
 		if (m_biomes[i].type() != BiomeType::GROUND)
 			continue;
 
-		float dist = pos.SquaredDistance(Nz::Vector2f(m_biomes[i].elevation(), m_biomes[i].moisture()));
+		float dist = pos.SquaredDistance(Nz::Vector2f(m_biomes[i].temperature(), m_biomes[i].moisture()));
 		if (dist < minDist)
 		{
 			minDist = dist;

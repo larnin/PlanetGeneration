@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Generator.h"
+#include "Generator2.h"
 #include "Render.h"
 
 #include <random>
@@ -45,7 +46,7 @@ int main()
 	surface2 = relax(surface2);
 	surface2 = relax(surface2);*/
 
-	WorldMakerData d(10, 10000, 50);
+	/*WorldMakerData d(1, 10000, 100);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -64,12 +65,41 @@ int main()
 	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
 	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
 	d.haveWater = true;
+	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
-	d.maxDepth = 0.2f;
+	d.maxDepth = 0.1f;
 	d.rivierCount = 10;
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
-	Planet surface(createWorld(d));
+	Planet surface(createWorld(d));*/
+
+	WorldMakerData2 d(10000, 100);
+	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
+	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
+	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
+	d.biomes.push_back(Biome(0.875f, 0.42f, BiomeType::GROUND, RandomColor(Nz::Color(221, 221, 187)))); //tundra
+	d.biomes.push_back(Biome(0.875f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(187, 187, 187)))); //bare
+	d.biomes.push_back(Biome(0.875f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(153, 153, 153)))); //scorched
+	d.biomes.push_back(Biome(0.625f, 0.83f, BiomeType::GROUND, RandomColor(Nz::Color(204, 212, 187)))); //taiga
+	d.biomes.push_back(Biome(0.625f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(196, 204, 187)))); //shrubland
+	d.biomes.push_back(Biome(0.625f, 0.17f, BiomeType::GROUND, RandomColor(Nz::Color(228, 232, 202)))); //temperate desert
+	d.biomes.push_back(Biome(0.375f, 0.92f, BiomeType::GROUND, RandomColor(Nz::Color(164, 196, 168)))); //teperate rain forest
+	d.biomes.push_back(Biome(0.375f, 0.67f, BiomeType::GROUND, RandomColor(Nz::Color(180, 201, 169)))); //temperate deciduous forest
+	d.biomes.push_back(Biome(0.375f, 0.33f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
+	d.biomes.push_back(Biome(0.375f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(228, 232, 202)))); //temperate desert
+	d.biomes.push_back(Biome(0.125f, 0.83f, BiomeType::GROUND, RandomColor(Nz::Color(156, 187, 169)))); //tropical rain forest
+	d.biomes.push_back(Biome(0.125f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(169, 204, 164)))); //tropical seasonial forest
+	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
+	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
+	d.haveWater = true;
+	d.waterLevel = 0.5f;
+	d.maxHeight = 0.3f;
+	d.maxDepth = 0.1f;
+	d.rivierCount = 50;
+	d.elevationAmplification = 2.5f;
+	d.waterDepthAmplification = 0.7f;
+	Generator2 generator(d);
+	Planet surface(generator.create(1));
 	surface.setRadius(4);
 
 	std::cout << c.GetSeconds() << std::endl;
@@ -110,7 +140,7 @@ int main()
 	lightLight.SetLightType(Nz::LightType_Point);
 	lightLight.SetAmbientFactor(0.1f);
 	lightLight.SetRadius(100);
-	lightNode.SetPosition(Nz::Vector3f(5, 5, 0));
+	lightNode.SetPosition(Nz::Vector3f(5, 5, 5));
 
 	world.GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color(117, 122, 214)));
 

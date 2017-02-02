@@ -29,16 +29,16 @@ Nz::Color RandomColor::getColor() const
 
 Biome::Biome()
 	: m_color(Nz::Color())
-	, m_elevation(0)
+	, m_temperature(0)
 	, m_moisture(0)
 	, m_type(BiomeType::NONE)
 {
 
 }
 
-Biome::Biome(float elevation, float moisture, BiomeType type, const RandomColor & color)
+Biome::Biome(float temperature, float moisture, BiomeType type, const RandomColor & color)
 	: m_color(color)
-	, m_elevation(elevation)
+	, m_temperature(temperature)
 	, m_moisture(moisture)
 	, m_type(type)
 {
