@@ -20,9 +20,6 @@ SpherePoint toSpherePoint(const Nz::Vector3f & pos);
 
 Nz::Vector2f project(const Nz::Vector3f & pos, float yaw, float pitch);
 
-/*Nz::Vector3f cross(const Nz::Vector3f & a, const Nz::Vector3f & b);
-float dot(const Nz::Vector3f & a, const Nz::Vector3f & b);*/
-
 Nz::Vector3f triangleOmega(const Nz::Vector3f & a, const Nz::Vector3f & b, const Nz::Vector3f & c);
 
 std::pair<bool, Nz::Vector3f> intersect(const Nz::Vector3f & v0, const Nz::Vector3f & v1, const Nz::Vector3f & v2, const Nz::Vector3f & p, const Nz::Vector3f & d);
@@ -38,5 +35,15 @@ bool isLeft(const Nz::Vector3f & dir, const Nz::Vector3f line, const Nz::Vector3
 bool pointOnTetrahedron(Nz::Vector3f a, Nz::Vector3f b, Nz::Vector3f c, Nz::Vector3f d, Nz::Vector3f point);
 
 Nz::Vector2f colorToUV(const Nz::Color & c);
+
+float linearInterpolation(float a, float b, float x);
+float cosInterpolation(float a, float b, float x);
+float cos2DInterpolation(float a, float b, float c, float d, float x, float y);
+float cos3DInterpolation(float a, float b, float c, float d, float e, float f, float g, float h, float x, float y, float z);
+
+template <typename T>
+Nz::Vector3<T> clamp(Nz::Vector3<T> value, const Nz::Vector3<T> & min, const Nz::Vector3<T> & max);
+
+#include "Utilities.inl"
 
 #endif // UTILITIES_H

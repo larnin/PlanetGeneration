@@ -132,3 +132,23 @@ Nz::Vector2f colorToUV(const Nz::Color & c)
 	Nz::Vector2f bPos(c.b % 16, c.b / 16);
 	return (pos + bPos * 256 + Nz::Vector2f(0.5f, 0.5f)) / 4096;
 }
+
+float linearInterpolation(float a, float b, float x)
+{
+	return a * (1 - x) + b * x;
+}
+
+float cosInterpolation(float a, float b, float x)
+{
+	return linearInterpolation(a, b, (1 - cos(x*M_PI)) / 2);
+}
+
+float cos2DInterpolation(float a, float b, float c, float d, float x, float y)
+{
+	return cosInterpolation(cosInterpolation(a, b, x), cosInterpolation(c, d, x), y);
+}
+
+float cos3DInterpolation(float a, float b, float c, float d, float e, float f, float g, float h, float x, float y, float z)
+{
+	return cosInterpolation(cos2DInterpolation(a, b, c, d, x, y), cos2DInterpolation(e, f, g, h, x, y), z);
+}

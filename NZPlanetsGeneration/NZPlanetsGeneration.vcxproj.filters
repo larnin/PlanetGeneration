@@ -93,5 +93,11 @@
     <None Include="Planet.inl">
       <Filter>Template Files</Filter>
     </None>
+    <None Include="Utilities.inl">
+      <Filter>Template Files</Filter>
+    </None>
+    <None Include="Perlin3D.inl">
+      <Filter>Template Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

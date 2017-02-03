@@ -9,7 +9,7 @@ template <typename T>
 class Matrix3
 {
 public:
-	inline Matrix(Nz::Vector3ui size, T defaultValue = T())
+	inline Matrix3(Nz::Vector3ui size, T defaultValue = T())
 		: m_datas(size.x*size.y*size.z, defaultValue)
 		, m_size(size)
 	{}
@@ -38,5 +38,6 @@ private:
 	Nz::Vector3ui m_size;
 };
 
+	using Matrix3f = Matrix3<float>;
 
 #endif // !MATRIX3_H

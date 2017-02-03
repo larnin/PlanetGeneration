@@ -5,6 +5,7 @@
 
 # Don't send libraries on the git
 NZPlanetsGeneration/Libs/
+Thumbs.db
 
 # User-specific files
 *.suo

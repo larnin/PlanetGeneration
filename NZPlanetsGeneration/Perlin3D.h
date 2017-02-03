@@ -12,7 +12,6 @@ struct PerlinData2
 		: seed(_seed)
 		, passCount(6)
 		, baseSize(2)
-		, passPointMultiplier(2)
 		, passDivisor(2)
 		, amplitude(1)
 	{}
@@ -20,26 +19,30 @@ struct PerlinData2
 	unsigned int seed;
 	unsigned int passCount;
 	unsigned int baseSize;
-	float passPointMultiplier;
 	float passDivisor;
 	float amplitude;
 };
 
 class Perlin3D
 {
-	using Matrix3f = Matrix3<float>;
 public:
 	Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData2 & data);
 
 	float operator()(const Nz::Vector3f & pos);
 
 private:
-	float at(const Matrix3f & mat, const Nz::Vector3f & pos) const;
+	template <typename T>
+	Matrix3f perlinPass(unsigned int size, T & generator, float max);
+	float at(const Matrix3f & mat, Nz::Vector3f pos) const;
+	float relativeAt(const Matrix3f & mat, const Nz::Vector3f & pos) const;
+	void generate(const PerlinData2 & data);
 
 	Nz::Vector3f m_center;
 	Nz::Vector3f m_size;
 
-	Matrix3<float> m_matrix;
+	Matrix3f m_matrix;
 };
+
+#include "Perlin3D.inl"
 
 #endif // ! PERLIN3D_H

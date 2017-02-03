@@ -107,7 +107,7 @@ int main()
 	Ndk::Application application;
 
 	Nz::RenderWindow& mainWindow = application.AddWindow<Nz::RenderWindow>();
-	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default, Nz::ContextParameters(Nz::RenderTargetParameters(1)));
+	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default | Nz::WindowStyle_Threaded, Nz::ContextParameters(Nz::RenderTargetParameters(1)));
 	mainWindow.SetFramerateLimit(60);
 
 	Ndk::World& world = application.AddWorld();
