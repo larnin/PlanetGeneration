@@ -1,39 +1,13 @@
-
-#ifndef GENERATOR_H
-#define GENERATOR_H
 #pragma once
 
-#include "SphereSurface.h"
-#include "Biome.h"
 #include "Planet.h"
+#include <Nazara/Math/Vector3.hpp>
 #include <vector>
-
-struct PerlinData
-{
-	PerlinData(unsigned int _seed)
-		: seed(_seed)
-		, passCount(6)
-		, pointCount(20)
-		, passPointMultiplier(2)
-		, passDivisor(2)
-		, amplitude(1)
-	{}
-
-	unsigned int seed;
-	unsigned int passCount;
-	unsigned int pointCount;
-	float passPointMultiplier;
-	float passDivisor;
-	float amplitude;
-};
-
-SphereSurface<float> perlin(const PerlinData & data);
 
 struct WorldMakerData
 {
-	WorldMakerData(unsigned int _seed, unsigned int _pointCount, unsigned int _carvingLevel)
-		: seed(_seed)
-		, pointsCount(_pointCount)
+	inline WorldMakerData(unsigned int _pointCount, unsigned int _carvingLevel)
+		: pointsCount(_pointCount)
 		, carvingLevel(_carvingLevel)
 		, haveWater(true)
 		, maxLakeSize(_pointCount / 100)
@@ -43,9 +17,9 @@ struct WorldMakerData
 		, waterDepthAmplification(1.0f)
 		, maxHeight(0.1f)
 		, maxDepth(0.1f)
+		, planetSize(1.0f)
 	{}
 
-	unsigned int seed;
 	unsigned int pointsCount;
 	unsigned int carvingLevel;
 	std::vector<Biome> biomes;
@@ -57,8 +31,40 @@ struct WorldMakerData
 	float waterDepthAmplification;
 	float maxHeight;
 	float maxDepth;
+	float planetSize;
 };
 
-Planet createWorld(WorldMakerData data);
+class Generator
+{
+public:
+	Generator(const WorldMakerData & datas);
 
-#endif // GENERATOR_H
+	inline void setDatas(const WorldMakerData & datas) { if(!m_generating) m_datas = datas; }
+
+	Planet create(unsigned int seed);
+
+private:
+	void initializeData();
+	Planet initializePlanet(unsigned int seed);
+	void makePerlin(unsigned int seed, Planet & p) const;
+	float realWaterHeight(const Planet & p) const;
+	void placeWaterBiomes(Planet & p, float waterHeight) const;
+	void indexPoints(const Planet & p);
+	void createElevation(Planet & p) const;
+	void adaptElevation(Planet & p) const;
+	void createRivers(Planet & p, unsigned int seed) const;
+	void createMoisture(Planet & p) const;
+	void createTemperature(Planet & p) const;
+	void createBiomes(Planet & p) const;
+	void cleanData();
+
+	WorldMakerData m_datas;
+	bool m_generating;
+
+	unsigned int m_oceanBiomeIndex;
+	unsigned int m_lakeBiomeIndex;
+	unsigned int m_noBiomeIndex;
+
+	std::vector<Nz::Vector3f> m_points;
+};
+

@@ -1,329 +1,404 @@
-#include "generator.h"
-#include "sphericaldistribution.h"
-#include <random>
-#include <vector>
+#include "Generator.h"
+#include "Perlin3D.h"
+#include "SphericalDistribution.h"
+#include <stdexcept>
 #include <deque>
-#include <array>
-#include <iostream>
-#include <cassert>
-#include <algorithm>
 
-template <typename T>
-SphereSurface<float> perlinPass(T engine, float max, unsigned int pointCount)
+#include <iostream>
+#include <Nazara/Core/Clock.hpp>
+
+Generator::Generator(const WorldMakerData & datas)
+	: m_datas(datas)
+	, m_generating(false)
+	, m_oceanBiomeIndex(0)
+	, m_lakeBiomeIndex(0)
+	, m_noBiomeIndex(0)
 {
-	std::uniform_real_distribution<float> d(-max, max);
+
+}
+
+Planet Generator::create(unsigned int seed)
+{
+	if (m_generating)
+		throw std::runtime_error("The generator still work");
+	m_generating = true;
+	
+	Nz::Clock c;
+
+	initializeData();
+
+	std::cout << "Initialized : " << c.GetSeconds() << std::endl;
+
+	Planet p(initializePlanet(seed));
+
+	std::cout << "Planet created : " << c.GetSeconds() << std::endl;
+
+	indexPoints(p);
+
+	std::cout << "Points indexed : " << c.GetSeconds() << std::endl;
+
+	makePerlin(seed, p);
+
+	std::cout << "Perlin elevation : " << c.GetSeconds() << std::endl;
+
+	placeWaterBiomes(p, realWaterHeight(p));
+
+	std::cout << "Water done : " << c.GetSeconds() << std::endl;
+
+	createElevation(p);
+
+	std::cout << "Elevation done : " << c.GetSeconds() << std::endl;
+
+	adaptElevation(p);
+
+	std::cout << "Elevation adapted : " << c.GetSeconds() << std::endl;
+
+	createRivers(p, seed);
+
+	std::cout << "Rivers done : " << c.GetSeconds() << std::endl;
+
+	createMoisture(p);
+
+	std::cout << "Moisture done : " << c.GetSeconds() << std::endl;
+
+	createTemperature(p);
+
+	std::cout << "Temperature done : " << c.GetSeconds() << std::endl;
+
+	createBiomes(p);
+
+	std::cout << "Biomes done : " << c.GetSeconds() << std::endl;
+
+	cleanData();
+	m_generating = false;
+
+	std::cout << "Total : " << c.GetSeconds() << std::endl;
+
+	return p;
+}
+
+void Generator::initializeData()
+{
+	auto oceanBiomeIt(std::find_if(m_datas.biomes.begin(), m_datas.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
+	m_oceanBiomeIndex = std::distance(m_datas.biomes.begin(), oceanBiomeIt);
+	if (oceanBiomeIt == m_datas.biomes.end())
+	{
+		m_datas.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color::Black)));
+		m_datas.haveWater = false;
+	}
+	auto lakeBiomeIt(std::find_if(m_datas.biomes.begin(), m_datas.biomes.end(), [](const auto & b) {return b.type() == BiomeType::LAKE; }));
+	m_lakeBiomeIndex = std::distance(m_datas.biomes.begin(), lakeBiomeIt);
+	if (lakeBiomeIt == m_datas.biomes.end())
+	{
+		m_datas.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color::Black)));
+		m_datas.haveWater = false;
+	}
+
+	if (m_datas.waterLevel < 0.1)
+		m_datas.waterLevel = 0.1;
+	if (m_datas.waterLevel > 0.9)
+		m_datas.waterLevel = 0.9;
+	if (!m_datas.haveWater)
+	{
+		m_datas.waterLevel = 0.5f;
+		m_datas.maxLakeSize = 0;
+	}
+
+	m_datas.biomes.push_back(Biome(0, 0, BiomeType::NONE, RandomColor(Nz::Color::Red)));
+	m_noBiomeIndex = m_datas.biomes.size() - 1;
+
+	assert(!m_datas.biomes.empty());
+}
+
+Planet Generator::initializePlanet(unsigned int seed)
+{
+	Planet p(m_datas.planetSize, m_datas.biomes);
+
+	std::mt19937 engine(seed);
 	SphericalDistribution<float> pitchDistrib;
 	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
 
-	SphereSurface<float> s;
-
-	for (unsigned int i(0); i < pointCount; i++)
-		s.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)), d(engine));
-
-	relax(s);
-	s.buildMap();
-	return s;
+	for (unsigned int i(0); i < m_datas.pointsCount; i++)
+		p.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)), BlockInfo(0, 0, 0, m_noBiomeIndex));
+	p.buildMap();
+	return p;
 }
 
-SphereSurface<float> perlin(const PerlinData & data)
+void Generator::makePerlin(unsigned int seed, Planet & p) const
 {
-	std::mt19937 engine(data.seed);
-	if (data.passCount == 0)
-		return SphereSurface<float>();
+	PerlinData data(seed);
+	data.amplitude = 1;
+	data.baseSize = m_datas.carvingLevel;
+	data.passCount = 3;
+	data.passDivisor = 3;
+	Perlin3D perlin(Nz::Vector3f::Zero(), Nz::Vector3f(1.1f, 1.1f, 1.1f), data);
 
-	std::vector<SphereSurface<float>> surfaces;
-	unsigned int pointCount(data.pointCount);
-	float value(data.amplitude);
-	for (unsigned int i(0); i < data.passCount; i++)
-	{
-		surfaces.push_back(perlinPass(engine, value, pointCount));
-		std::cout << "pass " << i << " done / " << pointCount << " points" << std::endl;
-		value /= data.passDivisor;
-		pointCount *= data.passPointMultiplier;
-	}
-
-	std::cout << "Stack pass ..." << std::endl;
-
-	SphereSurface<float> s(surfaces.back());
-	for (auto it2(s.blocksBegin()); it2 != s.blocksEnd(); it2++)
-		it2->data = 0;
-
-	surfaces.pop_back();
-	unsigned int index(0);
-	for (const auto & surface : surfaces)
-	{
-		for (auto it(surface.trianglesBegin()); it != surface.trianglesEnd(); it++)
-		{
-			const SphereBlock<float> & b1(*std::next(surface.blocksBegin(), it->block1));
-			const SphereBlock<float> & b2(*std::next(surface.blocksBegin(), it->block2));
-			const SphereBlock<float> & b3(*std::next(surface.blocksBegin(), it->block3));
-
-			Nz::Vector3f pos1(toVector3(b1.pos));
-			Nz::Vector3f pos2(toVector3(b2.pos));
-			Nz::Vector3f pos3(toVector3(b3.pos));
-
-			for (auto it2(s.blocksBegin()); it2 != s.blocksEnd(); it2++)
-			{
-				Nz::Vector3f pos(toVector3(it2->pos));
-				auto i(intersect(pos1, pos2, pos3, Nz::Vector3f(0, 0, 0), pos));
-				if (!i.first)
-					continue;
-
-				Nz::Vector3f p(proportions(pos1, pos2, pos3, i.second));
-				it2->data += p.x*b1.data + p.y*b2.data + p.z*b3.data;
-			}
-		}
-		std::cout << index++ << " stacked" << std::endl;
-	}
-	std::cout << "end" << std::endl;
-	return s;
+	for (unsigned int i(0); i < p.blockCount(); i++)
+		p.block(i).data.height = perlin(m_points[i]);
 }
 
-void placeWaterBiome(Planet & p, unsigned int startPoint, unsigned int oceanBiomeIndex, unsigned int lakeBiomeIndex, unsigned int maxLakeSize, float waterLevel)
+float Generator::realWaterHeight(const Planet & p) const
 {
-	std::deque<unsigned int> toUpdateList;
-	toUpdateList.push_back(startPoint);
-	std::vector<unsigned int> points;
-
-	while (!toUpdateList.empty())
+	std::vector<unsigned int> sortedNoizePointsByElevation;
+	for (unsigned int i(0); i < p.blockCount(); i++)
+		sortedNoizePointsByElevation.push_back(i);
+	std::sort(sortedNoizePointsByElevation.begin(), sortedNoizePointsByElevation.end(), [&p](unsigned int a, unsigned int b)
 	{
-		unsigned int index = toUpdateList.front();
+		return p.block(a).data.height < p.block(b).data.height;
+	});
+	unsigned int index(m_datas.waterLevel*sortedNoizePointsByElevation.size());
+	if (index >= sortedNoizePointsByElevation.size())
+		index = sortedNoizePointsByElevation.size() - 1;
+	return p.block(sortedNoizePointsByElevation[index]).data.height;
+}
 
-		auto point(std::next(p.blocksBegin(), index));
-		for (unsigned int triangleIndex : point->triangles)
+void Generator::placeWaterBiomes(Planet & p, float waterHeight) const
+{
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+	{
+		if (it->data.height > waterHeight || it->data.biomeIndex != m_noBiomeIndex)
+			continue;
+
+		std::vector<unsigned int> toUpdateList;
+		toUpdateList.push_back(std::distance(p.blocksBegin(), it));
+		std::vector<unsigned int> points;
+
+		while (!toUpdateList.empty())
 		{
-			auto triangle(std::next(p.trianglesBegin(), triangleIndex));
-			std::array<unsigned int, 3> indexs{ triangle->block1, triangle->block2, triangle->block3 };
-			for (auto i : indexs)
+			unsigned int posInList(toUpdateList.size() - 1);
+			unsigned int index(toUpdateList.back());
+			for (unsigned int i : p.connectedBlocks(index))
 			{
-				auto block(std::next(p.blocksBegin(), i));
-				if (block->data.height > waterLevel)
+				auto block(p.block(i));
+				if (block.data.height > waterHeight || block.data.biomeIndex != m_noBiomeIndex)
 					continue;
-
 				if (std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end() && std::find(points.begin(), points.end(), i) == points.end())
 					toUpdateList.push_back(i);
 			}
+			points.push_back(index);
+			std::swap(toUpdateList[posInList], toUpdateList.back());
+			toUpdateList.pop_back();
 		}
 
-		points.push_back(index);
-		toUpdateList.pop_front();
+		unsigned int biomeIndex(m_lakeBiomeIndex);
+		if (points.size() > m_datas.maxLakeSize)
+			biomeIndex = m_oceanBiomeIndex;
+		for (unsigned int point : points)
+			p.block(point).data.biomeIndex = biomeIndex;
 	}
-
-	unsigned int biomeIndex(lakeBiomeIndex);
-	if (points.size() > maxLakeSize)
-		biomeIndex = oceanBiomeIndex;
-	for (unsigned int point : points)
-		std::next(p.blocksBegin(), point)->data.biomeIndex = biomeIndex;
 }
 
-void createElevation(Planet & p)
+void Generator::indexPoints(const Planet & p)
 {
-	std::deque<unsigned int> toUpdateList;
+	m_points.clear();
+
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+		m_points.push_back(toVector3(it->pos));
+}
+
+void Generator::createElevation(Planet & p) const
+{
+	assert(m_points.size() == p.blockCount());
+
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+		it->data.height = 0;
+
 	std::vector<unsigned int> points;
 
-	float unit = sqrt(std::distance(p.blocksBegin(), p.blocksEnd()));
-
-	for (unsigned int index(0); index < p.blockCount(); index++)
+	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
-		auto point(p.block(index));
-		if (p.biome(point.data.biomeIndex).type() != BiomeType::NONE)
+		auto& block(p.block(i));
+		if (p.biome(block.data.biomeIndex).type() != BiomeType::NONE)
 			continue;
-
 		bool toAdd(false);
-		for (unsigned int triangleIndex : point.triangles)
+		float bestHeight(std::numeric_limits<float>::max());
+
+		for (unsigned int i2 : p.connectedBlocks(i))
 		{
-			auto& triangle(p.triangle(triangleIndex));
-			std::array<unsigned int, 3> indexs{ triangle.block1, triangle.block2, triangle.block3 };
-			for (auto i : indexs)
+			auto& block2(p.block(i2));
+			if (p.biome(block2.data.biomeIndex).type() != BiomeType::OCEAN)
+				continue;
+			toAdd = true;
+			float height((m_points[i] - m_points[i2]).GetLength() / 2);
+			if (height < bestHeight)
+				bestHeight = height;
+			
+			if (std::find(points.begin(), points.end(), i2) != points.end())
+				continue;
+
+			float bestHeight2(std::numeric_limits<float>::lowest());
+			for (unsigned int i3 : p.connectedBlocks(i2))
 			{
-				auto& block(p.block(i));
-				if (p.biome(block.data.biomeIndex).type() == BiomeType::OCEAN)
-				{
-					toAdd = true;
-					toUpdateList.push_back(i); //add water near of ground
-				}
+				auto& block3(p.block(i3));
+				if (p.biome(block3.data.biomeIndex).type() != BiomeType::NONE)
+					continue;
+				float height(-(m_points[i2] - m_points[i3]).GetLength() / 2);
+				if (height > bestHeight2)
+					bestHeight2 = height;
 			}
+
+			points.push_back(i2);
 		}
-
 		if (toAdd)
-			toUpdateList.push_back(index); //add ground near of water
+		{
+			block.data.height = bestHeight;
+			points.push_back(i);
+		}
 	}
 
-	if (toUpdateList.empty())
-	{
-		unsigned int index(std::distance(p.blocksBegin(), std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })));
-		p.block(index).data.height = 0;
-		toUpdateList.push_back(index);
-		points.push_back(index);
-	}
+	std::vector<unsigned int> toUpdateList;
+	for (unsigned int i : points)
+		for (unsigned int i2 : p.connectedBlocks(i))
+			if (std::find(toUpdateList.begin(), toUpdateList.end(), i2) == toUpdateList.end() && std::find(points.begin(), points.end(), i2) == points.end())
+				toUpdateList.push_back(i2);
+	assert(!toUpdateList.empty());
 
 	while (!toUpdateList.empty())
 	{
-		unsigned int index = toUpdateList.front();
-
-		auto& point(p.block(index));
-		const Biome& currentBiome(p.biome(point.data.biomeIndex));
-
-		std::vector<unsigned int> connectedPoints;
-		std::vector<unsigned int> validConnectedPoints;
-		for (unsigned int triangleIndex : point.triangles)
-		{
-			auto& triangle(p.triangle(triangleIndex));
-			std::array<unsigned int, 3> indexs{ triangle.block1, triangle.block2, triangle.block3 };
-			for (unsigned int i : indexs)
-			{
-				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
-					continue;
-				connectedPoints.push_back(i);
-				if (std::find(points.begin(), points.end(), i) != points.end())
-					validConnectedPoints.push_back(i);
-			}
-		}
+		unsigned int i(toUpdateList.front());
+		auto& b(p.block(i));
+		auto& biome(p.biome(b.data.biomeIndex));
 
 		bool found(false);
-		bool contactWithOtherBiome(false);
-		unsigned int bestIndex(0);
-		SphereBlock<BlockInfo>* bestBlock(nullptr);
-		float bestElevation(0);
-		Nz::Vector3f pos(toVector3(point.pos));
+		float bestHeight(0);
+		bool doNotMoveThis(false);
 
-		for (unsigned int i : validConnectedPoints)
+		auto connectedBlocks(p.connectedBlocks(i));
+		connectedBlocks.erase(std::remove_if(connectedBlocks.begin(), connectedBlocks.end(), [&points](unsigned int i)
 		{
-			if (i == index)
-				continue;
+			return std::find(points.begin(), points.end(), i) == points.end();
+		}), connectedBlocks.end());
 
-			auto & block(p.block(i));
-			const auto & biome(p.biome(block.data.biomeIndex));
-			float length((pos - toVector3(block.pos)).GetSquaredLength());
-
-			if (currentBiome.type() == BiomeType::OCEAN)
-			{
-				float elevation(block.data.height - sqrt(length)*unit);
-				if (!found || elevation > bestElevation)
-				{
-					found = true;
-					bestBlock = &block;
-					bestIndex = i;
-					bestElevation = elevation;
-					continue;
-				}
-			}
-			else if (currentBiome.type() == BiomeType::NONE)
-			{
-				float elevation(block.data.height + sqrt(length)*unit);
-				if (!found || elevation < bestElevation)
-				{
-					found = true;
-					bestBlock = &block;
-					bestIndex = i;
-					bestElevation = elevation;
-					continue;
-				}
-			}
-			else if (currentBiome.type() == BiomeType::LAKE)
-			{
-				if (!found || block.data.height < bestElevation)
-				{
-					found = true;
-					bestBlock = &block;
-					bestIndex = i;
-					bestElevation = block.data.height;
-					continue;
-				}
-			}
-		}
-
-		for (unsigned int i : connectedPoints)
+		for (unsigned int i2 : connectedBlocks)
 		{
-			if (i == index)
-				continue;
+			auto& b2(p.block(i2));
+			auto & biome2(p.biome(b2.data.biomeIndex));
 
-			if (std::find(validConnectedPoints.begin(), validConnectedPoints.end(), 1) != validConnectedPoints.end())
-				continue;
-
-			auto & block(p.block(index));
-			const auto & biome(p.biome(block.data.biomeIndex));
-			float length((pos - toVector3(block.pos)).GetSquaredLength());
-
-			if (currentBiome.type() == BiomeType::OCEAN)
-			{
-				if (biome.type() == BiomeType::NONE)
-				{
-					if (!found || !contactWithOtherBiome || length < (pos - toVector3(bestBlock->pos)).GetSquaredLength())
-					{
-						found = true;
-						bestBlock = &block;
-						bestIndex = i;
-						bestElevation = -sqrt(length)*unit / 2;
-					}
-					contactWithOtherBiome = true;
-					continue;
-				}
-			}
-			else if (currentBiome.type() == BiomeType::NONE)
-			{
-				if (biome.type() == BiomeType::OCEAN)
-				{
-					if (!found || !contactWithOtherBiome || length < (pos - toVector3(bestBlock->pos)).GetSquaredLength())
-					{
-						found = true;
-						bestBlock = &block;
-						bestIndex = i;
-						bestElevation = sqrt(length)*unit / 2;
-					}
-					contactWithOtherBiome = true;
-					continue;
-				}
-			}
-		}
-
-		point.data.height = bestElevation;
-		for (unsigned int i : connectedPoints)
-		{
-			if (std::find(points.begin(), points.end(), i) == points.end() && std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end())
-			{
-				toUpdateList.push_back(i);
-				continue;
-			}
-			auto& other(p.block(i));
-			auto& biome(p.biome(other.data.biomeIndex));
 			if (biome.type() == BiomeType::LAKE)
 			{
-				if (other.data.height > point.data.height)
-					toUpdateList.push_back(i);
+				if (!found || b2.data.height < bestHeight)
+				{
+					found = true;
+					bestHeight = b2.data.height;
+				}
 			}
 			else if (biome.type() == BiomeType::OCEAN)
 			{
-				if (point.data.height - (pos - toVector3(other.pos)).GetLength()*unit > other.data.height && currentBiome.type() == BiomeType::OCEAN)
-					toUpdateList.push_back(i);
+				if (biome2.type() != BiomeType::OCEAN)
+				{
+					doNotMoveThis = true;
+					break;
+				}
+
+				float height(b2.data.height - (m_points[i] - m_points[i2]).GetLength());
+				if (!found || height > bestHeight)
+				{
+					found = true;
+					bestHeight = height;
+				}
 			}
-			else
+			else //NONE
 			{
-				if (point.data.height + (pos - toVector3(other.pos)).GetLength()*unit < other.data.height && currentBiome.type() == BiomeType::NONE)
-					toUpdateList.push_back(i);
+				if (biome2.type() == BiomeType::OCEAN)
+				{
+					doNotMoveThis = true;
+					break;
+				}
+
+				float height(b2.data.height + (m_points[i] - m_points[i2]).GetLength());
+				if (!found || height < bestHeight)
+				{
+					found = true;
+					bestHeight = height;
+				}
 			}
 		}
 
-		if (std::find(points.begin(), points.end(), index) == points.end())
-			points.push_back(index);
-		toUpdateList.pop_front();
+		if (doNotMoveThis)
+		{
+			if (std::find(points.begin(), points.end(), i) == points.end())
+				points.push_back(i);
+			toUpdateList.erase(toUpdateList.begin());
+			continue;
+		}
+		b.data.height = bestHeight;
+
+		for (unsigned int i2 : connectedBlocks)
+		{
+			auto& b2(p.block(i2));
+			auto & biome2(p.biome(b2.data.biomeIndex));
+
+			if (biome2.type() == BiomeType::LAKE)
+			{
+				if (biome.type() != BiomeType::LAKE)
+					continue;
+				if (b2.data.height > b.data.height)
+					toUpdateList.push_back(i2);
+			}
+			else if (biome2.type() == BiomeType::OCEAN)
+			{
+				float height(b.data.height - (m_points[i] - m_points[i2]).GetLength());
+				if (height > b2.data.height)
+					toUpdateList.push_back(i2);
+			}
+			else //NONE
+			{
+				float height(b.data.height + (m_points[i] - m_points[i2]).GetLength());
+				if (height < b2.data.height)
+					toUpdateList.push_back(i2);
+			}
+		}
+
+		for (unsigned int i2 : p.connectedBlocks(i))
+			if (std::find(toUpdateList.begin(), toUpdateList.end(), i2) == toUpdateList.end() && std::find(points.begin(), points.end(), i2) == points.end())
+				toUpdateList.push_back(i2);
+
+		if(std::find(points.begin(), points.end(), i) == points.end())
+			points.push_back(i);
+		toUpdateList.erase(toUpdateList.begin());
 	}
 }
 
-void placeRivers(Planet & p, unsigned int count, unsigned int seed)
+void Generator::adaptElevation(Planet & p) const
+{
+	float min(std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height);
+	float max(std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height);
+
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+	{
+		if (!m_datas.haveWater)
+		{
+			it->data.height = std::pow((it->data.height - min) / (max - min), m_datas.elevationAmplification)*m_datas.maxHeight;
+			it->data.biomeIndex = m_noBiomeIndex;
+		}
+		else if (it->data.height < 0)
+		{
+			it->data.height /= -min;
+			it->data.height = -std::pow(-it->data.height, m_datas.waterDepthAmplification);
+			it->data.height *= m_datas.maxDepth;
+
+		}
+		else
+		{
+			it->data.height /= max;
+			it->data.height = std::pow(it->data.height, m_datas.elevationAmplification);
+			it->data.height *= m_datas.maxHeight;
+		}
+	}
+}
+
+void Generator::createRivers(Planet & p, unsigned int seed) const
 {
 	std::mt19937 engine(seed);
 	std::uniform_int_distribution<unsigned int> d(0, p.blockCount());
 
-	for (unsigned int i(0); i < count; i++)
+	for (unsigned int i(0); i < m_datas.rivierCount; i++)
 	{
 		River r;
 		for (unsigned int i(0); i < 10; i++)
 		{
 			unsigned int index(d(engine));
-			auto & block(p.block(index));
-			auto & biome(p.biome(block.data.biomeIndex));
-			if (biome.type() == BiomeType::NONE)
+			if (p.biome(p.block(index).data.biomeIndex).type() == BiomeType::NONE)
 			{
 				r.push_back(index);
 				break;
@@ -334,247 +409,123 @@ void placeRivers(Planet & p, unsigned int count, unsigned int seed)
 
 		while (true)
 		{
+			const auto& b(p.block(r.back()));
+			const auto& biome(p.biome(b.data.biomeIndex));
+			if (biome.type() == BiomeType::OCEAN || biome.type() == BiomeType::LAKE)
+				break;
+
 			unsigned int bestIndex(0);
 			float bestHeight(std::numeric_limits<float>::max());
-			std::vector<unsigned int> connectedPoints;
-			for (const auto & triangle : p.block(r.back()).triangles)
+			for (unsigned int i : p.connectedBlocks(r.back()))
 			{
-				const auto & t(p.triangle(triangle));
-				std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
-				for (unsigned int i : indexs)
-				{
-					if (std::find(connectedPoints.begin(), connectedPoints.end(), i) != connectedPoints.end())
-						continue;
-					connectedPoints.push_back(i);
-				}
-			}
-
-			for (auto i : connectedPoints)
-			{
-				const auto & b(p.block(i));
-				if (b.data.height < bestHeight)
+				const auto& b2(p.block(i));
+				if (b2.data.height < bestHeight)
 				{
 					bestIndex = i;
-					bestHeight = b.data.height;
+					bestHeight = b2.data.height;
 				}
 			}
-			if (bestHeight > p.block(r.back()).data.height)
+			if (bestHeight > b.data.height)
 				break;
-			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
-			{
-				r.push_back(bestIndex);
-				break;
-			}
 			r.push_back(bestIndex);
-			const auto & b(p.block(bestIndex));
-			if (p.biome(b.data.biomeIndex).type() == BiomeType::OCEAN || p.biome(b.data.biomeIndex).type() == BiomeType::LAKE)
+			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
 				break;
 		}
 		p.addRiver(r);
 	}
 }
 
-void createMoisture(Planet & p)
+void Generator::createMoisture(Planet & p) const
 {
-	std::deque<unsigned int> toUpdateList;
 	std::vector<unsigned int> points;
+	std::vector<unsigned int> toUpdateList;
 
 	for (unsigned int i(0); i < p.riverCount(); i++)
 		for (unsigned int index : p.river(i))
 		{
-			if (std::find(points.begin(), points.end(), index) == points.end())
-				points.push_back(index);
-
-			for (const auto & triangle : p.block(index).triangles)
-			{
-				const auto & t(p.triangle(triangle));
-				std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
-
-				for (unsigned int i : indexs)
-					if (std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end() && std::find(points.begin(), points.end(), i) == points.end())
-						toUpdateList.push_back(i);
-			}
+			if (std::find(points.begin(), points.end(), index) != points.end())
+				continue;
+			points.push_back(index);
+			for (unsigned int index2 : p.connectedBlocks(index))
+				if (std::find(toUpdateList.begin(), toUpdateList.end(), index2) == toUpdateList.end() && std::find(points.begin(), points.end(), index2) == points.end())
+					toUpdateList.push_back(i);
 		}
 
 	while (!toUpdateList.empty())
 	{
-		unsigned int index = toUpdateList.front();
+		unsigned int index(toUpdateList.front());
 
-		std::vector<unsigned int> connectedPoints;
-		std::vector<unsigned int> allConnectedPoints;
-		for (const auto & triangle : p.block(index).triangles)
+		auto& block(p.block(index));
+		if (p.biome(block.data.biomeIndex).type() != BiomeType::NONE)
 		{
-			const auto & t(p.triangle(triangle));
-			std::array<unsigned int, 3> indexs{ t.block1, t.block2, t.block3 };
-			for (unsigned int i : indexs)
-			{
-				allConnectedPoints.push_back(i);
-				if (std::find(connectedPoints.begin(), connectedPoints.end(), i) == connectedPoints.end() && std::find(points.begin(), points.end(), i) != points.end())
-					connectedPoints.push_back(i);
-			}
+			toUpdateList.erase(toUpdateList.begin());
+			continue;
 		}
 
 		bool found(false);
 		float bestMoisture(std::numeric_limits<float>::max());
-		auto & block(p.block(index));
-		Nz::Vector3f pos(toVector3(block.pos));
-		for (unsigned int i : connectedPoints)
+		for (unsigned int i : p.connectedBlocks(index))
 		{
-			const auto & b(p.block(i));
-			const auto & biome(p.biome(b.data.biomeIndex));
-			if (biome.type() != BiomeType::NONE)
-				continue;
-			float moisture(b.data.moisture + (toVector3(b.pos) - pos).GetLength());
-			if (moisture < bestMoisture)
+			if (std::find(points.begin(), points.end(), i) != points.end())
 			{
-				found = true;
-				bestMoisture = moisture;
+				const auto& block2(p.block(i));
+				float moisture(block2.data.moisture + (m_points[index] - m_points[i]).GetLength());
+				if (moisture < bestMoisture)
+				{
+					bestMoisture = moisture;
+					found = true;
+				}
 			}
+			else if (std::find(toUpdateList.begin(), toUpdateList.end(), i) == toUpdateList.end())
+				toUpdateList.push_back(i);
 		}
-
-		for (unsigned int p : allConnectedPoints)
-		{
-			if (std::find(points.begin(), points.end(), p) == points.end() && std::find(toUpdateList.begin(), toUpdateList.end(), p) == toUpdateList.end())
-				toUpdateList.push_back(p);
-		}
-
 		if (found)
+		{
 			block.data.moisture = bestMoisture;
-		else block.data.moisture = 0;
+		}
 
+		toUpdateList.erase(toUpdateList.begin());
 		points.push_back(index);
-		toUpdateList.pop_front();
-
-		
 	}
-	float maxMoisture = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
-	float minMoisture = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
 
-	for (unsigned int i(0) ; i < p.blockCount() ; i++)
-	{
-		auto & block(p.block(i));
-		if (std::find(points.begin(), points.end(), i) == points.end())
-			block.data.moisture = maxMoisture;
-		block.data.moisture = 1 - ((block.data.moisture - minMoisture) / (maxMoisture - minMoisture));
-	}
-}
-
-void createBiomes(Planet & p)
-{
-	float minElevation = 0;// std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
-	float maxElevation = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
 	float maxMoisture = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
-	float minMoisture = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.moisture < b.data.moisture; })->data.moisture;
 
 	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
-		auto & block(p.block(i));
-		const auto & biome(p.biome(block.data.biomeIndex));
-		if (biome.type() != BiomeType::NONE)
-			continue;
-
-		block.data.biomeIndex = p.nearestBiomeID((block.data.height-minElevation)/(maxElevation-minElevation), (block.data.moisture-minMoisture)/(maxMoisture-minMoisture));
+		auto& block(p.block(i));
+		if (std::find(points.begin(), points.end(), i) == points.end())
+			block.data.moisture = maxMoisture;
+		block.data.moisture = 1 - (block.data.moisture / maxMoisture);
 	}
 }
 
-Planet createWorld(WorldMakerData data)
+void Generator::createTemperature(Planet & p) const
 {
-	//compute preconditions
-	assert(!data.biomes.empty());
-	auto oceanBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
-	unsigned int oceanBiomeIndex(std::distance(data.biomes.begin(), oceanBiomeIt));
-	if (oceanBiomeIt == data.biomes.end())
-		data.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color::Black)));
-	auto lakeBiomeIt(std::find_if(data.biomes.begin(), data.biomes.end(), [](const auto & b) {return b.type() == BiomeType::LAKE; }));
-	unsigned int lakeBiomeIndex(std::distance(data.biomes.begin(), lakeBiomeIt));
-	if(lakeBiomeIt == data.biomes.end())
-		data.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color::Black)));
-
-	if (oceanBiomeIt == data.biomes.end() || lakeBiomeIt == data.biomes.end())
-		data.haveWater = false;
-	if (data.waterLevel < 0.1)
-		data.waterLevel = 0.1;
-	if (data.waterLevel > 0.9)
-		data.waterLevel = 0.9;
-	if (!data.haveWater)
-	{
-		data.waterLevel = 0.5f;
-		data.maxLakeSize = 0;
-	}
-
-	data.biomes.push_back(Biome(0, 0, BiomeType::NONE, RandomColor(Nz::Color::Red)));
-	unsigned int noBiomeIndex(data.biomes.size() - 1);
-	//-----
-
-	PerlinData perlinData(data.seed);
-	perlinData.passCount = 2;
-	perlinData.passDivisor = 1000;
-	perlinData.passPointMultiplier = data.pointsCount / data.carvingLevel;
-	perlinData.pointCount = data.carvingLevel;
-	perlinData.amplitude = 0.1f;
-	SphereSurface<float> noise(perlin(perlinData));
-	
-	Planet p(Planet::clone(noise, data.biomes, BlockInfo(0, 0, 0, noBiomeIndex)));
-	for (unsigned int i(0); i < std::distance(p.blocksBegin(), p.blocksEnd()); i++)
-		std::next(p.blocksBegin(), i)->data.height = std::next(noise.blocksBegin(), i)->data;
-
-	float realWaterHeight;
-
-	{
-		std::vector<unsigned int> sortedNoizePointsByElevation;
-		for (unsigned int i(0); i < (unsigned int)(std::distance(noise.blocksBegin(), noise.blocksEnd())); i++)
-			sortedNoizePointsByElevation.push_back(i);
-		std::sort(sortedNoizePointsByElevation.begin(), sortedNoizePointsByElevation.end(), [&noise](unsigned int a, unsigned int b)
-		{
-			return std::next(noise.blocksBegin(), a)->data < std::next(noise.blocksBegin(), b)->data;
-		});
-		unsigned int index(data.waterLevel*sortedNoizePointsByElevation.size());
-		if (index >= sortedNoizePointsByElevation.size())
-			index = sortedNoizePointsByElevation.size() - 1;
-		realWaterHeight = std::next(noise.blocksBegin(), sortedNoizePointsByElevation[index])->data;
-	}
+	float max(std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height);
 
 	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
 	{
-		if (it->data.height < realWaterHeight && it->data.biomeIndex == noBiomeIndex)
-			placeWaterBiome(p, std::distance(p.blocksBegin(), it), oceanBiomeIndex, lakeBiomeIndex, data.maxLakeSize, realWaterHeight);
+		if (it->data.height <= 0)
+			it->data.temperature = 0;
+		else it->data.temperature = it->data.height / max;
 	}
+}
 
-	createElevation(p);
-	float min = std::min_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
-	float max = std::max_element(p.blocksBegin(), p.blocksEnd(), [](const auto & a, const auto & b) {return a.data.height < b.data.height; })->data.height;
-
+void Generator::createBiomes(Planet & p) const
+{
 	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
 	{
-		if (!data.haveWater)
-		{
-			it->data.height = std::pow((it->data.height - min) / (max - min), data.elevationAmplification)*data.maxHeight;
-			it->data.biomeIndex = noBiomeIndex;
-		}
-		else
-		{
-			if (it->data.height < 0)
-			{
-				it->data.height /= -min;
-				it->data.height = -std::pow(-it->data.height, data.waterDepthAmplification);
-				it->data.height *= data.maxDepth;
-
-			}
-			else
-			{
-				it->data.height /= max;
-				it->data.height = std::pow(it->data.height, data.elevationAmplification);
-				it->data.height *= data.maxHeight;
-			}
-		}
-		
+		if (p.biome(it->data.biomeIndex).type() != BiomeType::NONE)
+			continue;
+		it->data.biomeIndex = p.nearestBiomeID(it->data.temperature, it->data.moisture);
 	}
+}
 
-	placeRivers(p, data.rivierCount, data.seed);
-
-	createMoisture(p);
-
-	createBiomes(p);
-
-	return p;
+void Generator::cleanData()
+{
+	m_points.clear();
+	m_points.shrink_to_fit();
+	m_oceanBiomeIndex = 0;
+	m_lakeBiomeIndex = 0;
+	m_noBiomeIndex = 0;
 }

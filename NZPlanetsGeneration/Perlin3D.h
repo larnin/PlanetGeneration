@@ -6,9 +6,9 @@
 #include <Nazara/Math/Vector3.hpp>
 #include <vector>
 
-struct PerlinData2
+struct PerlinData
 {
-	PerlinData2(unsigned int _seed)
+	PerlinData(unsigned int _seed)
 		: seed(_seed)
 		, passCount(6)
 		, baseSize(2)
@@ -26,7 +26,7 @@ struct PerlinData2
 class Perlin3D
 {
 public:
-	Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData2 & data);
+	Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData & data);
 
 	float operator()(const Nz::Vector3f & pos);
 
@@ -35,7 +35,7 @@ private:
 	Matrix3f perlinPass(unsigned int size, T & generator, float max);
 	float at(const Matrix3f & mat, Nz::Vector3f pos) const;
 	float relativeAt(const Matrix3f & mat, const Nz::Vector3f & pos) const;
-	void generate(const PerlinData2 & data);
+	void generate(const PerlinData & data);
 
 	Nz::Vector3f m_center;
 	Nz::Vector3f m_size;

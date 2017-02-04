@@ -8,7 +8,6 @@
 #include <iostream>
 
 #include "Generator.h"
-#include "Generator2.h"
 #include "Render.h"
 
 #include <random>
@@ -20,7 +19,7 @@ int main()
 {
 	Nz::Clock c;
 
-	WorldMakerData2 d(10000, 8);
+	WorldMakerData d(10000, 8);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -45,7 +44,7 @@ int main()
 	d.rivierCount = 50;
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
-	Generator2 generator(d);
+	Generator generator(d);
 	Planet surface(generator.create(6));
 	surface.setRadius(4);
 

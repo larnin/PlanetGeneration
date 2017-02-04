@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 
-Perlin3D::Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData2 & data)
+Perlin3D::Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData & data)
 	: m_center(center)
 	, m_size(size)
 	, m_matrix(Nz::Vector3ui(0, 0, 0))
@@ -40,7 +40,7 @@ float Perlin3D::relativeAt(const Matrix3f & mat, const Nz::Vector3f & pos) const
 							, offset.x, offset.y, offset.z);
 }
 
-void Perlin3D::generate(const PerlinData2 & data)
+void Perlin3D::generate(const PerlinData & data)
 {
 	std::mt19937 engine(data.seed);
 
