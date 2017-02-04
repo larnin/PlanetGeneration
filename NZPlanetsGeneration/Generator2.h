@@ -17,6 +17,7 @@ struct WorldMakerData2
 		, waterDepthAmplification(1.0f)
 		, maxHeight(0.1f)
 		, maxDepth(0.1f)
+		, planetSize(1.0f)
 	{}
 
 	unsigned int pointsCount;
@@ -30,6 +31,7 @@ struct WorldMakerData2
 	float waterDepthAmplification;
 	float maxHeight;
 	float maxDepth;
+	float planetSize;
 };
 
 class Generator2
@@ -43,7 +45,8 @@ public:
 
 private:
 	void initializeData();
-	Planet makePerlin(unsigned int seed) const;
+	Planet initializePlanet(unsigned int seed);
+	void makePerlin(unsigned int seed, Planet & p) const;
 	float realWaterHeight(const Planet & p) const;
 	void placeWaterBiomes(Planet & p, float waterHeight) const;
 	void indexPoints(const Planet & p);
@@ -53,6 +56,7 @@ private:
 	void createMoisture(Planet & p) const;
 	void createTemperature(Planet & p) const;
 	void createBiomes(Planet & p) const;
+	void cleanData();
 
 	WorldMakerData2 m_datas;
 	bool m_generating;

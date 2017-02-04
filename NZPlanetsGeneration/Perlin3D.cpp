@@ -2,6 +2,7 @@
 #include "Utilities.h"
 #include <random>
 #include <vector>
+#include <iostream>
 
 Perlin3D::Perlin3D(const Nz::Vector3f & center, const Nz::Vector3f & size, const PerlinData2 & data)
 	: m_center(center)
@@ -21,7 +22,7 @@ float Perlin3D::at(const Matrix3f & mat, Nz::Vector3f pos) const
 	auto size(mat.getSize());
 
 	pos -= (m_center - m_size);
-	pos = Nz::Vector3f(pos.x / (2 * m_size.x) * size.x, pos.y / (2 * m_size.y) * size.y, pos.z / (2 * m_size.z) * size.z);
+	pos = Nz::Vector3f(pos.x / (2 * m_size.x), pos.y / (2 * m_size.y), pos.z / (2 * m_size.z));
 
 	return relativeAt(mat, pos);
 }
@@ -62,7 +63,7 @@ void Perlin3D::generate(const PerlinData2 & data)
 		for (unsigned int j(0); j < m_matrix.getSize().y; j++)
 			for (unsigned int k(0); k < m_matrix.getSize().z; k++)
 			{
-				Nz::Vector3f pos(i / m_matrix.getSize().x, j / m_matrix.getSize().y, k / m_matrix.getSize().z);
+				Nz::Vector3f pos((float)i / m_matrix.getSize().x, (float)j / m_matrix.getSize().y, (float)k / m_matrix.getSize().z);
 				for (const auto & m : mats)
 					m_matrix(Nz::Vector3ui(i, j, k)) += relativeAt(m, pos);
 			}

@@ -1,9 +1,12 @@
 #include "Generator2.h"
 #include "Generator.h"
+#include "Perlin3D.h"
+#include "SphericalDistribution.h"
 #include <stdexcept>
 #include <deque>
 
 #include <iostream>
+#include <Nazara/Core/Clock.hpp>
 
 Generator2::Generator2(const WorldMakerData2 & datas)
 	: m_datas(datas)
@@ -21,17 +24,56 @@ Planet Generator2::create(unsigned int seed)
 		throw std::runtime_error("The generator still work");
 	m_generating = true;
 	
+	Nz::Clock c;
+
 	initializeData();
-	Planet p(makePerlin(seed));
+
+	std::cout << "Initialized : " << c.GetSeconds() << std::endl;
+
+	Planet p(initializePlanet(seed));
+
+	std::cout << "Planet created : " << c.GetSeconds() << std::endl;
+
 	indexPoints(p);
 
+	std::cout << "Points indexed : " << c.GetSeconds() << std::endl;
+
+	makePerlin(seed, p);
+
+	std::cout << "Perlin elevation : " << c.GetSeconds() << std::endl;
+
 	placeWaterBiomes(p, realWaterHeight(p));
+
+	std::cout << "Water done : " << c.GetSeconds() << std::endl;
+
 	createElevation(p);
+
+	std::cout << "Elevation done : " << c.GetSeconds() << std::endl;
+
 	adaptElevation(p);
+
+	std::cout << "Elevation adapted : " << c.GetSeconds() << std::endl;
+
 	createRivers(p, seed);
+
+	std::cout << "Rivers done : " << c.GetSeconds() << std::endl;
+
 	createMoisture(p);
+
+	std::cout << "Moisture done : " << c.GetSeconds() << std::endl;
+
 	createTemperature(p);
+
+	std::cout << "Temperature done : " << c.GetSeconds() << std::endl;
+
 	createBiomes(p);
+
+	std::cout << "Biomes done : " << c.GetSeconds() << std::endl;
+
+	cleanData();
+	m_generating = false;
+
+	std::cout << "Total : " << c.GetSeconds() << std::endl;
 
 	return p;
 }
@@ -69,16 +111,31 @@ void Generator2::initializeData()
 	assert(!m_datas.biomes.empty());
 }
 
-Planet Generator2::makePerlin(unsigned int seed) const
+Planet Generator2::initializePlanet(unsigned int seed)
 {
-	PerlinData perlinData(seed);
-	perlinData.passCount = 2;
-	perlinData.passDivisor = 1000;
-	perlinData.passPointMultiplier = m_datas.pointsCount / m_datas.carvingLevel;
-	perlinData.pointCount = m_datas.carvingLevel;
-	perlinData.amplitude = 0.1f;
+	Planet p(m_datas.planetSize, m_datas.biomes);
 
-	return Planet::clone(perlin(perlinData), m_datas.biomes, [noBiomeIndex = m_noBiomeIndex](const auto & v) {return BlockInfo(v, 0, 0, noBiomeIndex); });
+	std::mt19937 engine(seed);
+	SphericalDistribution<float> pitchDistrib;
+	std::uniform_real_distribution<float> yawDistrib(0, 2 * float(M_PI));
+
+	for (unsigned int i(0); i < m_datas.pointsCount; i++)
+		p.addBlock(SpherePoint(yawDistrib(engine), pitchDistrib(engine)), BlockInfo(0, 0, 0, m_noBiomeIndex));
+	p.buildMap();
+	return p;
+}
+
+void Generator2::makePerlin(unsigned int seed, Planet & p) const
+{
+	PerlinData2 data(seed);
+	data.amplitude = 1;
+	data.baseSize = m_datas.carvingLevel;
+	data.passCount = 3;
+	data.passDivisor = 3;
+	Perlin3D perlin(Nz::Vector3f::Zero(), Nz::Vector3f(1.1f, 1.1f, 1.1f), data);
+
+	for (unsigned int i(0); i < p.blockCount(); i++)
+		p.block(i).data.height = perlin(m_points[i]);
 }
 
 float Generator2::realWaterHeight(const Planet & p) const
@@ -143,6 +200,9 @@ void Generator2::indexPoints(const Planet & p)
 void Generator2::createElevation(Planet & p) const
 {
 	assert(m_points.size() == p.blockCount());
+
+	for (auto it(p.blocksBegin()); it != p.blocksEnd(); it++)
+		it->data.height = 0;
 
 	std::vector<unsigned int> points;
 
@@ -369,6 +429,8 @@ void Generator2::createRivers(Planet & p, unsigned int seed) const
 			if (bestHeight > b.data.height)
 				break;
 			r.push_back(bestIndex);
+			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
+				break;
 		}
 		p.addRiver(r);
 	}
@@ -458,4 +520,13 @@ void Generator2::createBiomes(Planet & p) const
 			continue;
 		it->data.biomeIndex = p.nearestBiomeID(it->data.temperature, it->data.moisture);
 	}
+}
+
+void Generator2::cleanData()
+{
+	m_points.clear();
+	m_points.shrink_to_fit();
+	m_oceanBiomeIndex = 0;
+	m_lakeBiomeIndex = 0;
+	m_noBiomeIndex = 0;
 }
