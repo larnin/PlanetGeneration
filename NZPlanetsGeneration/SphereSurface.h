@@ -57,13 +57,16 @@ protected:
 	std::vector<SphereTriangle> m_triangles;
 
 	bool m_builded;
-};
 
-template <typename T>
-SphereSurface<T> relaxation(const SphereSurface<T> & m, float diviser = 1);
+	template<typename U>
+	friend void makeRegular(SphereSurface<U> & surface, unsigned int steps, U value);
+};
 
 template<typename T>
 SphereSurface<T> relax(const SphereSurface<T> & s);
+
+template<typename T>
+void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value = T());
 
 #include "SphereSurface.inl"
 

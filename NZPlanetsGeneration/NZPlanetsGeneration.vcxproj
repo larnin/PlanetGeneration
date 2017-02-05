@@ -154,14 +154,11 @@
     <ClCompile Include="main.cpp" />
     <ClInclude Include="Biome.h" />
     <ClInclude Include="Generator.h" />
-    <ClInclude Include="Matrix3.h" />
-    <ClInclude Include="Perlin3D.h" />
     <ClInclude Include="Planet.h" />
     <ClInclude Include="Render.h" />
     <ClInclude Include="SphereSurface.inl">
       <FileType>Document</FileType>
     </ClInclude>
-    <ClCompile Include="Perlin3D.cpp" />
     <ClCompile Include="Planet.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="Utilities.cpp" />
@@ -175,7 +172,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Biome.inl" />
-    <None Include="Perlin3D.inl" />
     <None Include="Planet.inl" />
     <None Include="Render.inl" />
     <None Include="Utilities.inl" />

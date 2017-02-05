@@ -6,6 +6,7 @@
 #include <NDK/Systems.hpp>
 #include <NDK/World.hpp>
 #include <iostream>
+#include <Nazara/Noise/Worley.hpp>
 
 #include "Generator.h"
 #include "Render.h"
@@ -13,13 +14,11 @@
 #include <random>
 #include "SphericalDistribution.h"
 
-#include "Perlin3D.h"
-
 int main()
 {
 	Nz::Clock c;
 
-	WorldMakerData d(10000, 8);
+	WorldMakerData d(10000, 1.5f);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -40,15 +39,13 @@ int main()
 	d.haveWater = true;
 	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
-	d.maxDepth = 0.1f;
+	d.maxDepth = 0.05f;
 	d.rivierCount = 50;
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
 	Generator generator(d);
-	Planet surface(generator.create(6));
+	Planet surface(generator.create(8));
 	surface.setRadius(4);
-
-	std::cout << c.GetSeconds() << std::endl;
 
 	Ndk::Application application;
 
@@ -89,6 +86,8 @@ int main()
 	lightNode.SetPosition(Nz::Vector3f(5, 5, 5));
 
 	world.GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color(117, 122, 214)));
+
+	std::cout << "Ready : " << c.GetSeconds() << std::endl;
 
 	while (application.Run())
 	{

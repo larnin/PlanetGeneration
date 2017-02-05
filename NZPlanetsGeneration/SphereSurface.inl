@@ -210,26 +210,6 @@ SphereSurface<U> SphereSurface<T>::clone(U defaultValue)
 	return surface;
 }
 
-template <typename T>
-SphereSurface<T> relaxation(const SphereSurface<T> & m, float diviser)
-{
-	SphereSurface<T> s(m.radius());
-	for (auto it(m.blocksBegin()); it != m.blocksEnd(); it++)
-	{
-		Nz::Vector3f pos(toVector3(it->pos, s.radius()));
-		for (auto it2(m.blocksBegin()); it2 != m.blocksEnd(); it2++)
-		{
-			if (it == it2)
-				continue;
-			Nz::Vector3f pos2(toVector3(it2->pos, s.radius()));
-			pos -= pos2 / (norm(pos2 - pos)*diviser);
-		}
-		s.addBlock(toSpherePoint(pos));
-	}
-
-	return s;
-}
-
 template<typename T>
 SphereSurface<T> relax(const SphereSurface<T> & s)
 {
@@ -267,4 +247,66 @@ SphereSurface<T> relax(const SphereSurface<T> & s)
 	s2.buildMap();
 
 	return s2;
+}
+
+template<typename T>
+void makeTriangles(std::vector<SphereBlock<T>>& blocks, std::vector<SphereTriangle>& triangles, unsigned int triangle, unsigned int block1, unsigned int block2, unsigned int block3)
+{
+
+}
+
+template<typename T>
+void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value)
+{
+	auto & blocks(surface.m_blocks);
+	auto & triangles(surface.m_triangles);
+
+	triangles.clear();
+	blocks.clear();
+
+	blocks.emplace_back(SpherePoint(0, float(M_PI)), value);
+	blocks.emplace_back(SpherePoint(0, float(M_PI) / 3), value);
+	blocks.emplace_back(SpherePoint(2 * float(M_PI) / 3, float(M_PI) / 3), value);
+	blocks.emplace_back(SpherePoint(4 * float(M_PI) / 3, float(M_PI) / 3), value);
+
+	surface.addTriangle(0, 1, 2);
+	surface.addTriangle(0, 1, 3);
+	surface.addTriangle(0, 2, 3);
+	surface.addTriangle(1, 2, 3);
+
+	blocks[0].triangles = { 0, 1, 2 };
+	blocks[1].triangles = { 0, 1, 3 };
+	blocks[2].triangles = { 0, 2, 3 };
+	blocks[3].triangles = { 1, 2, 3 };
+
+	struct NextTriangle
+	{
+		NextTriangle(unsigned int _triangle, SphereLine _line, unsigned int _point)
+			: triangle(_triangle), line(_line), point(_point) {}
+
+		unsigned int triangle;
+		SphereLine line;
+		unsigned int point;
+	};
+
+	for (unsigned int i(0); i < steps; i++)
+	{
+		std::vector<NextTriangle> triangles;
+
+		auto triangle t(triangles[0]);
+
+		auto b1(toVector3(surface.block(t.block1).pos);
+		auto b2(toVector3(surface.block(t.block2).pos);
+		auto b3(toVector3(surface.block(t.block3).pos);
+
+		blocks.emplace_back(toSpherePoint(b1 + b2), value);
+		blocks.emplace_back(toSpherePoint(b2 + b3), value);
+		blocks.emplace_back(toSpherePoint(b1 + b3), value);
+
+		makeTriangles(blocks, triangles, 0, blocks.size() - 3, blocks.size() - 2, blocks.size() - 1);
+
+
+	}
+
+	surface.m_builded = true;
 }

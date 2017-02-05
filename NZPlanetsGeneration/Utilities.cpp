@@ -129,7 +129,7 @@ bool pointOnTetrahedron(Nz::Vector3f a,Nz::Vector3f b, Nz::Vector3f c, Nz::Vecto
 Nz::Vector2f colorToUV(const Nz::Color & c)
 {
 	Nz::Vector2f pos(c.r, c.g);
-	Nz::Vector2f bPos(c.b % 16, c.b / 16);
+	Nz::Vector2f bPos(float(c.b % 16), float(c.b / 16));
 	return (pos + bPos * 256 + Nz::Vector2f(0.5f, 0.5f)) / 4096;
 }
 
@@ -140,7 +140,7 @@ float linearInterpolation(float a, float b, float x)
 
 float cosInterpolation(float a, float b, float x)
 {
-	return linearInterpolation(a, b, (1 - cos(x*M_PI)) / 2);
+	return linearInterpolation(a, b, (1 - cos(x*float(M_PI))) / 2);
 }
 
 float cos2DInterpolation(float a, float b, float c, float d, float x, float y)

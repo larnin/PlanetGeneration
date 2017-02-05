@@ -9,3 +9,8 @@ bool SphereTriangle::operator==(const SphereTriangle & other)
 	std::sort(t2.begin(), t2.end());
 	return t1[0] == t2[0] && t1[1] == t2[1] && t1[2] == t2[2];
 }
+
+bool SphereLine::operator==(const SphereLine & other)
+{
+	return std::min(block1, block2) == std::min(other.block1, other.block2) && std::max(block1, block2) == std::max(other.block1, other.block2);
+}

@@ -32,9 +32,6 @@
     <ClCompile Include="Planet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Perlin3D.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Generator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -67,12 +64,6 @@
     <ClInclude Include="Planet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Perlin3D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Matrix3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -88,9 +79,6 @@
       <Filter>Template Files</Filter>
     </None>
     <None Include="Utilities.inl">
-      <Filter>Template Files</Filter>
-    </None>
-    <None Include="Perlin3D.inl">
       <Filter>Template Files</Filter>
     </None>
   </ItemGroup>

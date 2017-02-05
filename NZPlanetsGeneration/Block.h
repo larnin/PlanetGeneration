@@ -8,7 +8,7 @@
 template <typename T>
 struct SphereBlock
 {
-	SphereBlock(const SpherePoint & _pos) : pos(_pos) { }
+	SphereBlock(const SpherePoint & _pos, const T & _value = T()) : pos(_pos) , data(_value) { }
 
 	SpherePoint pos;
 
@@ -30,6 +30,19 @@ struct SphereTriangle
 	unsigned int block3;
 
 	bool operator==(const SphereTriangle & other);
+};
+
+struct SphereLine
+{
+	SphereLine(unsigned int b1, unsigned int b2)
+		: block1(b1)
+		, block2(b2)
+	{}
+
+	unsigned int block1;
+	unsigned int block2;
+
+	bool operator==(const SphereLine & other);
 };
 
 struct BlockInfo

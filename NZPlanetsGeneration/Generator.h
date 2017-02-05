@@ -4,11 +4,17 @@
 #include <Nazara/Math/Vector3.hpp>
 #include <vector>
 
+enum class NoiseType
+{
+	SIMPLEX,
+	PERLIN
+};
+
 struct WorldMakerData
 {
-	inline WorldMakerData(unsigned int _pointCount, unsigned int _carvingLevel)
+	inline WorldMakerData(unsigned int _pointCount, float _scale)
 		: pointsCount(_pointCount)
-		, carvingLevel(_carvingLevel)
+		, scale(_scale)
 		, haveWater(true)
 		, maxLakeSize(_pointCount / 100)
 		, waterLevel(0.5f)
@@ -18,10 +24,11 @@ struct WorldMakerData
 		, maxHeight(0.1f)
 		, maxDepth(0.1f)
 		, planetSize(1.0f)
+		, noiseType(NoiseType::PERLIN)
 	{}
 
 	unsigned int pointsCount;
-	unsigned int carvingLevel;
+	float scale;
 	std::vector<Biome> biomes;
 	bool haveWater;
 	unsigned int maxLakeSize;
@@ -32,6 +39,7 @@ struct WorldMakerData
 	float maxHeight;
 	float maxDepth;
 	float planetSize;
+	NoiseType noiseType;
 };
 
 class Generator
