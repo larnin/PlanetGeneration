@@ -6,7 +6,6 @@
 #include <NDK/Systems.hpp>
 #include <NDK/World.hpp>
 #include <iostream>
-#include <Nazara/Noise/Worley.hpp>
 
 #include "Generator.h"
 #include "Render.h"
@@ -37,6 +36,7 @@ int main()
 	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
 	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
 	d.subdivisons = 6;
+	d.groundScale = 2.0f;
 	d.haveWater = true;
 	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
@@ -49,6 +49,7 @@ int main()
 	surface.setRadius(4);
 
 	Ndk::Application application;
+	//application.EnableFPSCounter(true);
 
 	Nz::RenderWindow& mainWindow = application.AddWindow<Nz::RenderWindow>();
 	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default , Nz::ContextParameters(Nz::RenderTargetParameters(1)));

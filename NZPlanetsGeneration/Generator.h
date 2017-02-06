@@ -17,6 +17,7 @@ struct WorldMakerData
 		: pointsCount(_pointCount)
 		, subdivisons(4)
 		, scale(_scale)
+		, groundScale(1)
 		, haveWater(true)
 		, maxLakeSize(_pointCount / 100)
 		, waterLevel(0.5f)
@@ -31,6 +32,7 @@ struct WorldMakerData
 	unsigned int pointsCount;
 	unsigned int subdivisons;
 	float scale;
+	float groundScale;
 	std::vector<Biome> biomes;
 	bool haveWater;
 	unsigned int maxLakeSize;
@@ -41,7 +43,6 @@ struct WorldMakerData
 	float maxHeight;
 	float maxDepth;
 	float planetSize;
-
 };
 
 class Generator
@@ -60,9 +61,9 @@ private:
 	float realWaterHeight(const Planet & p) const;
 	void placeWaterBiomes(Planet & p, float waterHeight) const;
 	void indexPoints(const Planet & p);
-	void createElevation(Planet & p) const;
+	void createElevation(Planet & p);
 	void adaptElevation(Planet & p) const;
-	void createRivers(Planet & p, unsigned int seed) const;
+	void createRivers(Planet & p);
 	void createMoisture(Planet & p) const;
 	void createTemperature(Planet & p) const;
 	void createBiomes(Planet & p) const;

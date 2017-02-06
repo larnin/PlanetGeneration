@@ -263,7 +263,7 @@ void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value)
 										   { 7,10,3 }, { 7,6,10 }, { 7,11,6 }, { 11,0,6 }, { 0,1,6 },
 										   { 6,1,10 }, { 9,0,11 }, { 9,11,2 }, { 9,2,5 }, { 7,2,11 } };
 
-	for (int i = 0; i<steps; ++i)
+	for (unsigned int i = 0; i < steps; ++i)
 		triangles = subdivide(points, triangles);
 
 	for (const auto & point : points)
