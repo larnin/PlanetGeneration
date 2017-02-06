@@ -161,6 +161,7 @@
     </ClInclude>
     <ClCompile Include="Planet.cpp" />
     <ClCompile Include="Render.cpp" />
+    <ClCompile Include="SphereSurface.cpp" />
     <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>

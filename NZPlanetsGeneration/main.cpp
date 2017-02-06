@@ -36,10 +36,11 @@ int main()
 	d.biomes.push_back(Biome(0.125f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(169, 204, 164)))); //tropical seasonial forest
 	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
 	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
+	d.subdivisons = 6;
 	d.haveWater = true;
 	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
-	d.maxDepth = 0.05f;
+	d.maxDepth = 0.15f;
 	d.rivierCount = 50;
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
@@ -50,7 +51,7 @@ int main()
 	Ndk::Application application;
 
 	Nz::RenderWindow& mainWindow = application.AddWindow<Nz::RenderWindow>();
-	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default | Nz::WindowStyle_Threaded, Nz::ContextParameters(Nz::RenderTargetParameters(1)));
+	mainWindow.Create(Nz::VideoMode(800, 600, 32), "Test", Nz::WindowStyle_Default , Nz::ContextParameters(Nz::RenderTargetParameters(1)));
 	mainWindow.SetFramerateLimit(60);
 
 	Ndk::World& world = application.AddWorld();

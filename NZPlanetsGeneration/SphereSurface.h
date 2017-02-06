@@ -3,8 +3,10 @@
 #pragma once
 
 #include "Block.h"
+#include <Nazara/Math/Vector3.hpp>
 #include <vector>
 #include <cassert>
+#include <map>
 
 template <typename T>
 class SphereSurface
@@ -67,6 +69,10 @@ SphereSurface<T> relax(const SphereSurface<T> & s);
 
 template<typename T>
 void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value = T());
+
+using Lookup = std::map<std::pair<unsigned int, unsigned int>, unsigned int>;
+unsigned int vertexForEdge(Lookup& lookup, std::vector<Nz::Vector3f>& vertices, unsigned int first, unsigned int second);
+std::vector<SphereTriangle> subdivide(std::vector<Nz::Vector3f>& vertices, const std::vector<SphereTriangle>& triangles);
 
 #include "SphereSurface.inl"
 

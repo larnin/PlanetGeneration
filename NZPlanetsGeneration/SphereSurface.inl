@@ -250,63 +250,162 @@ SphereSurface<T> relax(const SphereSurface<T> & s)
 }
 
 template<typename T>
-void makeTriangles(std::vector<SphereBlock<T>>& blocks, std::vector<SphereTriangle>& triangles, unsigned int triangle, unsigned int block1, unsigned int block2, unsigned int block3)
-{
-
-}
-
-template<typename T>
 void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value)
 {
-	auto & blocks(surface.m_blocks);
-	auto & triangles(surface.m_triangles);
+	const float X = .525731112119133606f;
+	const float Z = .850650808352039932f;
 
-	triangles.clear();
-	blocks.clear();
+	std::vector<Nz::Vector3f> points{ { -X,0,Z },{ X,0,Z },{ -X,0,-Z },{ X,0,-Z },
+									  { 0,Z,X },{ 0,Z,-X },{ 0,-Z,X },{ 0,-Z,-X },
+									  { Z,X,0 },{ -Z,X,0 },{ Z,-X,0 },{ -Z,-X,0 } };
+	std::vector<SphereTriangle> triangles{ {0, 4, 1}, { 0,9,4 }, { 9,5,4 }, { 4,5,8 }, { 4,8,1 },
+										   { 8,10,1 }, { 8,3,10 }, { 5,3,8 }, { 5,2,3 }, { 2,7,3 },
+										   { 7,10,3 }, { 7,6,10 }, { 7,11,6 }, { 11,0,6 }, { 0,1,6 },
+										   { 6,1,10 }, { 9,0,11 }, { 9,11,2 }, { 9,2,5 }, { 7,2,11 } };
 
-	blocks.emplace_back(SpherePoint(0, float(M_PI)), value);
-	blocks.emplace_back(SpherePoint(0, float(M_PI) / 3), value);
-	blocks.emplace_back(SpherePoint(2 * float(M_PI) / 3, float(M_PI) / 3), value);
-	blocks.emplace_back(SpherePoint(4 * float(M_PI) / 3, float(M_PI) / 3), value);
+	for (int i = 0; i<steps; ++i)
+		triangles = subdivide(points, triangles);
 
-	surface.addTriangle(0, 1, 2);
-	surface.addTriangle(0, 1, 3);
-	surface.addTriangle(0, 2, 3);
-	surface.addTriangle(1, 2, 3);
-
-	blocks[0].triangles = { 0, 1, 2 };
-	blocks[1].triangles = { 0, 1, 3 };
-	blocks[2].triangles = { 0, 2, 3 };
-	blocks[3].triangles = { 1, 2, 3 };
-
-	struct NextTriangle
+	for (const auto & point : points)
+		surface.m_blocks.emplace_back(toSpherePoint(point), value);
+	for (const auto & triangle : triangles)
 	{
-		NextTriangle(unsigned int _triangle, SphereLine _line, unsigned int _point)
-			: triangle(_triangle), line(_line), point(_point) {}
-
-		unsigned int triangle;
-		SphereLine line;
-		unsigned int point;
-	};
-
-	for (unsigned int i(0); i < steps; i++)
-	{
-		std::vector<NextTriangle> triangles;
-
-		auto triangle t(triangles[0]);
-
-		auto b1(toVector3(surface.block(t.block1).pos);
-		auto b2(toVector3(surface.block(t.block2).pos);
-		auto b3(toVector3(surface.block(t.block3).pos);
-
-		blocks.emplace_back(toSpherePoint(b1 + b2), value);
-		blocks.emplace_back(toSpherePoint(b2 + b3), value);
-		blocks.emplace_back(toSpherePoint(b1 + b3), value);
-
-		makeTriangles(blocks, triangles, 0, blocks.size() - 3, blocks.size() - 2, blocks.size() - 1);
-
-
+		surface.addTriangle(triangle.block1, triangle.block2, triangle.block3);
+		surface.block(triangle.block1).triangles.push_back(surface.triangleCount() - 1);
+		surface.block(triangle.block2).triangles.push_back(surface.triangleCount() - 1);
+		surface.block(triangle.block3).triangles.push_back(surface.triangleCount() - 1);
 	}
-
-	surface.m_builded = true;
 }
+
+//template<typename T>
+//void makeTriangles(SphereSurface<T> & surface, unsigned int triangle, unsigned int block1, unsigned int block2, unsigned int block3)
+//{
+//	auto & t(surface.triangle(triangle));
+//
+//	unsigned int tBlock1(t.block1);
+//	unsigned int tBlock2(t.block2);
+//	unsigned int tBlock3(t.block3);
+//
+//	t.block2 = block1;
+//	t.block3 = block3;
+//
+//	surface.addTriangle(block1, block2, block3);
+//	surface.addTriangle(block1, block2, tBlock2);
+//	surface.addTriangle(block2, block3, tBlock3);
+//
+//	auto & b1(surface.block(block1));
+//	auto & b2(surface.block(block2));
+//	auto & b3(surface.block(block3));
+//	auto & tB1(surface.block(tBlock1));
+//	auto & tB2(surface.block(tBlock2));
+//	auto & tB3(surface.block(tBlock3));
+//
+//	tB2.triangles.erase(std::remove_if(tB2.triangles.begin(), tB2.triangles.end(), [triangle](unsigned int value) {return value == triangle; }), tB2.triangles.end());
+//	tB3.triangles.erase(std::remove_if(tB3.triangles.begin(), tB3.triangles.end(), [triangle](unsigned int value) {return value == triangle; }), tB3.triangles.end());
+//
+//	b1.triangles.push_back(triangle);
+//	b3.triangles.push_back(triangle);
+//
+//	b1.triangles.push_back(surface.triangleCount() - 3);
+//	b2.triangles.push_back(surface.triangleCount() - 3);
+//	b3.triangles.push_back(surface.triangleCount() - 3);
+//
+//	b1.triangles.push_back(surface.triangleCount() - 2);
+//	b2.triangles.push_back(surface.triangleCount() - 2);
+//	tB2.triangles.push_back(surface.triangleCount() - 2);
+//
+//	b2.triangles.push_back(surface.triangleCount() - 1);
+//	b3.triangles.push_back(surface.triangleCount() - 1);
+//	tB3.triangles.push_back(surface.triangleCount() - 1);
+//}
+//
+//template<typename T>
+//std::vector<unsigned int> connectedTriangles(const SphereSurface<T> & surface, const SphereTriangle & triangle)
+//{
+//	std::vector<unsigned int> triangles;
+//	auto it(std::find_if(surface.trianglesBegin(), surface.trianglesEnd(), [&triangle](const auto & t)
+//	{
+//		std::vector<unsigned int> points{ t.block1, t.block2, t.block3 };
+//		points.erase(std::remove_if(points.begin(), points.end(), [&triangle](const auto p) {return p != triangle.block1 && p != triangle.block2; }), points.end());
+//		return points.size() == 2;
+//	}));
+//	if (it != surface.trianglesEnd())
+//		triangles.push_back(std::distance(surface.trianglesBegin(), it));
+//
+//	it = std::find_if(surface.trianglesBegin(), surface.trianglesEnd(), [&triangle](const auto & t)
+//	{
+//		std::vector<unsigned int> points{ t.block1, t.block2, t.block3 };
+//		points.erase(std::remove_if(points.begin(), points.end(), [&triangle](const auto p) {return p != triangle.block1 && p != triangle.block3; }), points.end());
+//		return points.size() == 2;
+//	});
+//	if (it != surface.trianglesEnd())
+//		triangles.push_back(std::distance(surface.trianglesBegin(), it));
+//
+//	it = std::find_if(surface.trianglesBegin(), surface.trianglesEnd(), [&triangle](const auto & t)
+//	{
+//		std::vector<unsigned int> points{ t.block1, t.block2, t.block3 };
+//		points.erase(std::remove_if(points.begin(), points.end(), [&triangle](const auto p) {return p != triangle.block2 && p != triangle.block3; }), points.end());
+//		return points.size() == 2;
+//	});
+//	if (it != surface.trianglesEnd())
+//		triangles.push_back(std::distance(surface.trianglesBegin(), it));
+//
+//	return triangles;
+//}
+//
+//template<typename T>
+//void makeRegular(SphereSurface<T> & surface, unsigned int steps, T value)
+//{
+//	auto & blocks(surface.m_blocks);
+//	auto & triangles(surface.m_triangles);
+//
+//	triangles.clear();
+//	blocks.clear();
+//
+//	blocks.emplace_back(SpherePoint(0, float(M_PI)), value);
+//	blocks.emplace_back(SpherePoint(0, float(M_PI) / 3), value);
+//	blocks.emplace_back(SpherePoint(2 * float(M_PI) / 3, float(M_PI) / 3), value);
+//	blocks.emplace_back(SpherePoint(4 * float(M_PI) / 3, float(M_PI) / 3), value);
+//
+//	surface.addTriangle(0, 1, 2);
+//	surface.addTriangle(0, 1, 3);
+//	surface.addTriangle(0, 2, 3);
+//	surface.addTriangle(1, 2, 3);
+//
+//	blocks[0].triangles = { 0, 1, 2 };
+//	blocks[1].triangles = { 0, 1, 3 };
+//	blocks[2].triangles = { 0, 2, 3 };
+//	blocks[3].triangles = { 1, 2, 3 };
+//
+//	struct NextTriangle
+//	{
+//		NextTriangle(unsigned int _triangle, SphereLine _line, unsigned int _point)
+//			: triangle(_triangle), line(_line), point(_point) {}
+//
+//		unsigned int triangle;
+//		SphereLine line;
+//		unsigned int point;
+//	};
+//
+//	for (unsigned int i(0); i < steps; i++)
+//	{
+//		std::vector<NextTriangle> nextTriangles;
+//
+//		auto t(triangles[0]);
+//
+//		auto b1(toVector3(surface.block(t.block1).pos));
+//		auto b2(toVector3(surface.block(t.block2).pos));
+//		auto b3(toVector3(surface.block(t.block3).pos));
+//
+//		blocks.emplace_back(toSpherePoint(b1 + b2), value);
+//		blocks.emplace_back(toSpherePoint(b2 + b3), value);
+//		blocks.emplace_back(toSpherePoint(b1 + b3), value);
+//
+//		makeTriangles(surface, 0, blocks.size() - 3, blocks.size() - 2, blocks.size() - 1);
+//
+//		auto connected(connectedTriangles(surface, t));
+//
+//	}
+//
+//	surface.m_builded = true;
+//}

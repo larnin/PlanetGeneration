@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <deque>
 #include <Nazara/Noise/Perlin.hpp>
-#include <Nazara/Noise/Simplex.hpp>
 
 #include <iostream>
 #include <Nazara/Core/Clock.hpp>
@@ -26,47 +25,48 @@ Planet Generator::create(unsigned int seed)
 	
 	Nz::Clock c;
 
-	initializeData();
+	initializeData(seed);
 
 	std::cout << "Initialized : " << c.GetSeconds() << std::endl;
 
 	Planet p(initializePlanet(seed));
 
 	std::cout << "Planet created : " << c.GetSeconds() << std::endl;
+	std::cout << "Points : " << p.blockCount() << std::endl;
 
 	indexPoints(p);
 
 	std::cout << "Points indexed : " << c.GetSeconds() << std::endl;
 
-	//makePerlin(seed, p);
+	makePerlin(p);
 
 	std::cout << "Perlin elevation : " << c.GetSeconds() << std::endl;
 
-	//placeWaterBiomes(p, realWaterHeight(p));
+	placeWaterBiomes(p, realWaterHeight(p));
 
 	std::cout << "Water done : " << c.GetSeconds() << std::endl;
 
-	//createElevation(p);
+	createElevation(p);
 
 	std::cout << "Elevation done : " << c.GetSeconds() << std::endl;
 
-	//adaptElevation(p);
+	adaptElevation(p);
 
 	std::cout << "Elevation adapted : " << c.GetSeconds() << std::endl;
 
-	//createRivers(p, seed);
+	createRivers(p, seed);
 
 	std::cout << "Rivers done : " << c.GetSeconds() << std::endl;
 
-	//createMoisture(p);
+	createMoisture(p);
 
 	std::cout << "Moisture done : " << c.GetSeconds() << std::endl;
 
-	//createTemperature(p);
+	createTemperature(p);
 
 	std::cout << "Temperature done : " << c.GetSeconds() << std::endl;
 
-	//createBiomes(p);
+	createBiomes(p);
 
 	std::cout << "Biomes done : " << c.GetSeconds() << std::endl;
 
@@ -78,8 +78,11 @@ Planet Generator::create(unsigned int seed)
 	return p;
 }
 
-void Generator::initializeData()
+void Generator::initializeData(unsigned int seed)
 {
+	m_generator = std::mt19937(seed);
+	m_points.clear();
+
 	auto oceanBiomeIt(std::find_if(m_datas.biomes.begin(), m_datas.biomes.end(), [](const auto & b) {return b.type() == BiomeType::OCEAN; }));
 	m_oceanBiomeIndex = std::distance(m_datas.biomes.begin(), oceanBiomeIt);
 	if (oceanBiomeIt == m_datas.biomes.end())
@@ -115,7 +118,7 @@ Planet Generator::initializePlanet(unsigned int seed)
 {
 	Planet p(m_datas.planetSize, m_datas.biomes);
 
-	makeRegular(p, 4, BlockInfo(0, 0, 0, m_noBiomeIndex));
+	makeRegular(p, m_datas.subdivisons, BlockInfo(0, 0, 0, m_noBiomeIndex));
 
 	/*std::mt19937 engine(seed);
 	SphericalDistribution<float> pitchDistrib;
@@ -127,22 +130,19 @@ Planet Generator::initializePlanet(unsigned int seed)
 	return p;
 }
 
-void Generator::makePerlin(unsigned int seed, Planet & p) const
+void Generator::makePerlin(Planet & p)
 {
-	if (m_datas.noiseType == NoiseType::PERLIN)
-	{
-		Nz::Perlin noise(seed);
+	Nz::Perlin noise(m_generator());
+	Nz::Perlin noise2(m_generator());
+	Nz::Perlin noise3(m_generator());
 
-		for (unsigned int i(0); i < p.blockCount(); i++)
-			p.block(i).data.height = noise.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.scale);
-	}
-	else
+	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
-		Nz::Simplex noise(seed);
-
-		for (unsigned int i(0); i < p.blockCount(); i++)
-			p.block(i).data.height = noise.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.scale);
+		p.block(i).data.height = noise.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.scale);
+		p.block(i).data.height += noise2.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.scale*2)/2;
+		p.block(i).data.height += noise3.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.scale*4)/4;
 	}
+
 }
 
 float Generator::realWaterHeight(const Planet & p) const

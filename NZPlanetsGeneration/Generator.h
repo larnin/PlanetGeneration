@@ -3,6 +3,7 @@
 #include "Planet.h"
 #include <Nazara/Math/Vector3.hpp>
 #include <vector>
+#include <random>
 
 enum class NoiseType
 {
@@ -14,6 +15,7 @@ struct WorldMakerData
 {
 	inline WorldMakerData(unsigned int _pointCount, float _scale)
 		: pointsCount(_pointCount)
+		, subdivisons(4)
 		, scale(_scale)
 		, haveWater(true)
 		, maxLakeSize(_pointCount / 100)
@@ -24,10 +26,10 @@ struct WorldMakerData
 		, maxHeight(0.1f)
 		, maxDepth(0.1f)
 		, planetSize(1.0f)
-		, noiseType(NoiseType::PERLIN)
 	{}
 
 	unsigned int pointsCount;
+	unsigned int subdivisons;
 	float scale;
 	std::vector<Biome> biomes;
 	bool haveWater;
@@ -39,7 +41,7 @@ struct WorldMakerData
 	float maxHeight;
 	float maxDepth;
 	float planetSize;
-	NoiseType noiseType;
+
 };
 
 class Generator
@@ -52,9 +54,9 @@ public:
 	Planet create(unsigned int seed);
 
 private:
-	void initializeData();
+	void initializeData(unsigned int seed);
 	Planet initializePlanet(unsigned int seed);
-	void makePerlin(unsigned int seed, Planet & p) const;
+	void makePerlin(Planet & p);
 	float realWaterHeight(const Planet & p) const;
 	void placeWaterBiomes(Planet & p, float waterHeight) const;
 	void indexPoints(const Planet & p);
@@ -74,5 +76,6 @@ private:
 	unsigned int m_noBiomeIndex;
 
 	std::vector<Nz::Vector3f> m_points;
+	std::mt19937 m_generator;
 };
 
