@@ -17,7 +17,7 @@ int main()
 {
 	Nz::Clock c;
 
-	WorldMakerData d(10000, 1.5f);
+	WorldMakerData d(9, 1.5f);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -35,8 +35,9 @@ int main()
 	d.biomes.push_back(Biome(0.125f, 0.50f, BiomeType::GROUND, RandomColor(Nz::Color(169, 204, 164)))); //tropical seasonial forest
 	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
 	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
-	d.subdivisons = 6;
 	d.groundScale = 2.0f;
+	d.elevationNoiseScale = 10.0f;
+	d.elevationNoiseAmplitude = 0.2f;
 	d.haveWater = true;
 	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
@@ -45,7 +46,7 @@ int main()
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
 	Generator generator(d);
-	Planet surface(generator.create(8));
+	Planet surface(generator.create(1));
 	surface.setRadius(4);
 
 	Ndk::Application application;

@@ -213,6 +213,7 @@ void Generator::createElevation(Planet & p)
 
 	std::vector<unsigned int> points;
 
+	// --- coasts---
 	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
 		auto& block(p.block(i));
@@ -231,7 +232,7 @@ void Generator::createElevation(Planet & p)
 			if (height < bestHeight)
 				bestHeight = height;
 			
-			if (std::find(points.begin(), points.end(), i2) != points.end())
+			/*if (std::find(points.begin(), points.end(), i2) != points.end())
 				continue;
 
 			float bestHeight2(std::numeric_limits<float>::lowest());
@@ -245,7 +246,7 @@ void Generator::createElevation(Planet & p)
 					bestHeight2 = height;
 			}
 
-			points.push_back(i2);
+			points.push_back(i2);*/
 		}
 		if (toAdd)
 		{
@@ -254,16 +255,65 @@ void Generator::createElevation(Planet & p)
 		}
 	}
 
+	// --- lakes ---
 	std::vector<float> perlinValues;
 	Nz::Perlin perlin(m_generator());
 	for (unsigned int point : points)
-		perlinValues.push_back(perlin.Get(m_points[point].x, m_points[point].y, m_points[point].z, m_datas.groundScale)*0.8f + 1.0f);
+		perlinValues.push_back(perlin.Get(m_points[point].x, m_points[point].y, m_points[point].z, m_datas.groundScale)*0.5f + 0.5f);
 
+	for (unsigned int i(0); i < p.blockCount(); i++)
+	{
+		if (p.block(i).data.biomeIndex != m_lakeBiomeIndex)
+			continue;
+		if (std::find(points.begin(), points.end(), i) != points.end())
+			continue;
 
+		std::vector<unsigned int> lake;
+		std::vector<unsigned int> toUpdate{ i };
+		float minimum(std::numeric_limits<float>::max());
+		while (!toUpdate.empty())
+		{
+			unsigned int index(toUpdate.front());
+			for (unsigned int connected : p.connectedBlocks(index))
+			{
+				if (p.block(connected).data.biomeIndex != m_lakeBiomeIndex)
+					continue;
+				if (std::find(toUpdate.begin(), toUpdate.end(), connected) != toUpdate.end() || std::find(lake.begin(), lake.end(), connected) != lake.end())
+					continue;
+				toUpdate.push_back(connected);
+			}
+			unsigned int perlinIndex(0);
+			for (unsigned int point : points)
+			{
+				auto & b(p.block(point));
+				if (b.data.biomeIndex != m_noBiomeIndex)
+					continue;
+				float height(sqrt((m_points[index] - m_points[point]).GetSquaredLength())*perlinValues[perlinIndex]);
+				if (height < minimum)
+					minimum = height;
+
+				perlinIndex++;
+			}
+			toUpdate.erase(toUpdate.begin());
+			lake.push_back(index);
+		}
+
+		for (unsigned point : lake)
+		{
+			p.block(point).data.height = minimum;
+			points.push_back(point);
+		}
+	}
+
+	for (unsigned int i(perlinValues.size()) ; i < points.size() ; i++)
+		perlinValues.push_back(perlin.Get(m_points[points[i]].x, m_points[points[i]].y, m_points[points[i]].z, m_datas.groundScale)*0.4f + 0.5f);
+
+	// --- elevation ---
 	for (unsigned int i(0); i < p.blockCount(); i++)
 	{
 		if (std::find(points.begin(), points.end(), i) != points.end())
 			continue;
+		auto & b(p.block(i));
 
 		float dist(std::numeric_limits<float>::max());
 		unsigned int bestID(0);
@@ -271,19 +321,35 @@ void Generator::createElevation(Planet & p)
 		unsigned int index(0);
 		for (unsigned int point : points)
 		{
-			float d((m_points[i] - m_points[point]).GetSquaredLength()*perlinValues[index]);
-			if (d < dist)
+			if (!(b.data.biomeIndex != m_noBiomeIndex && p.block(point).data.biomeIndex == m_lakeBiomeIndex))
 			{
-				dist = d;
-				bestID = point;
+				float d;
+				if (b.data.biomeIndex == m_noBiomeIndex)
+					d = p.block(point).data.height + sqrt((m_points[i] - m_points[point]).GetSquaredLength())*perlinValues[index];
+				else d = (m_points[i] - m_points[point]).GetSquaredLength()*perlinValues[index];
+				if (d < dist)
+				{
+					dist = d;
+					bestID = point;
+				}
 			}
 			index++;
 		}
 
-		auto & b(p.block(i));
 		if(b.data.biomeIndex == m_oceanBiomeIndex)
 			b.data.height = p.block(bestID).data.height - sqrt(dist);
-		else b.data.height = p.block(bestID).data.height + sqrt(dist);
+		else b.data.height = dist;
+	}
+
+	Nz::Perlin elevationNoise(m_generator());
+	Nz::Perlin elevationNoise2(m_generator());
+	for (unsigned int i(0); i < p.blockCount(); i++)
+	{
+		auto & b(p.block(i));
+		if (b.data.biomeIndex == m_lakeBiomeIndex)
+			continue;
+		b.data.height *= perlin.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.elevationNoiseScale) *m_datas.elevationNoiseAmplitude + 1;
+		b.data.height *= perlin.Get(m_points[i].x, m_points[i].y, m_points[i].z, m_datas.elevationNoiseScale * 2) *m_datas.elevationNoiseAmplitude / 2 + 1;
 	}
 
 	//std::vector<unsigned int> toUpdateList;

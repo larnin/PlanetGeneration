@@ -13,13 +13,14 @@ enum class NoiseType
 
 struct WorldMakerData
 {
-	inline WorldMakerData(unsigned int _pointCount, float _scale)
-		: pointsCount(_pointCount)
-		, subdivisons(4)
+	inline WorldMakerData(unsigned int _subdivisions, float _scale)
+		: subdivisons(_subdivisions)
 		, scale(_scale)
 		, groundScale(1)
+		, elevationNoiseScale(10)
+		, elevationNoiseAmplitude(0.1f)
 		, haveWater(true)
-		, maxLakeSize(_pointCount / 100)
+		, maxLakeSize(pow(2, _subdivisions * 2) / 10)
 		, waterLevel(0.5f)
 		, rivierCount(10)
 		, elevationAmplification(1.0f)
@@ -29,10 +30,11 @@ struct WorldMakerData
 		, planetSize(1.0f)
 	{}
 
-	unsigned int pointsCount;
 	unsigned int subdivisons;
 	float scale;
 	float groundScale;
+	float elevationNoiseScale;
+	float elevationNoiseAmplitude;
 	std::vector<Biome> biomes;
 	bool haveWater;
 	unsigned int maxLakeSize;
