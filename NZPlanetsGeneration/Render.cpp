@@ -58,7 +58,8 @@ Nz::ModelRef render(const Planet & p)
 	indexsMapper.Unmap();
 
 	Nz::MeshRef mesh = Nz::Mesh::New();
-	mesh->CreateStatic();
+	mesh->CreateStatic();/*
+	mesh->SetMaterialCount(2);*/
 
 	Nz::StaticMeshRef subMesh = Nz::StaticMesh::New(mesh);
 	if (!subMesh->Create(vertexs))
@@ -75,17 +76,8 @@ Nz::ModelRef render(const Planet & p)
 	//t->SetMaterialIndex(0);
 
 	Nz::ModelRef model = Nz::Model::New();
-	model->SetMesh(mesh);
 
 	
-	Nz::MaterialRef mat = Nz::Material::New();
-	mat->LoadFromFile("Res/512.png");
-	Nz::TextureSampler tex(mat->GetDiffuseSampler());
-	tex.SetFilterMode(Nz::SamplerFilter_Nearest);
-	mat->SetDiffuseSampler(tex);
-	mat->SetFaceFilling(Nz::FaceFilling_Fill);
-	mat->SetShader("PhongLighting");
-	model->SetMaterial(0, mat);
 
 	//alpha for water
 	/*Nz::MaterialRef mat = Nz::Material::New("Translucent3D");
@@ -98,6 +90,17 @@ Nz::ModelRef render(const Planet & p)
 	mat->SetFaceFilling(Nz::FaceFilling_Fill);
 	mat->SetShader("PhongLighting");
 	model->SetMaterial(0, mat);*/
+
+	model->SetMesh(mesh);
+
+	Nz::MaterialRef mat = Nz::Material::New();
+	mat->LoadFromFile("Res/512.png");
+	Nz::TextureSampler tex(mat->GetDiffuseSampler());
+	tex.SetFilterMode(Nz::SamplerFilter_Nearest);
+	mat->SetDiffuseSampler(tex);
+	mat->SetFaceFilling(Nz::FaceFilling_Fill);
+	mat->SetShader("PhongLighting");
+	model->SetMaterial(0, mat);
 
 	return model;
 }

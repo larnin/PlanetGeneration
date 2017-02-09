@@ -533,9 +533,12 @@ void Generator::createRivers(Planet & p)
 			}
 			if (bestHeight > b.data.height)
 				break;
-			r.push_back(bestIndex);
 			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
+			{
+				r.push_back(bestIndex);
 				break;
+			}
+			r.push_back(bestIndex);
 		}
 		p.addRiver(r);
 	}
@@ -544,7 +547,6 @@ void Generator::createRivers(Planet & p)
 void Generator::createMoisture(Planet & p) const
 {
 	std::vector<unsigned int> points;
-	std::vector<unsigned int> computedPoints(points);
 
 	for (unsigned int i(0); i < p.riverCount(); i++)
 		for (unsigned int index : p.river(i))
@@ -553,6 +555,8 @@ void Generator::createMoisture(Planet & p) const
 				continue;
 			points.push_back(index);
 		}
+
+	std::vector<unsigned int> computedPoints(points);
 
 	for (unsigned int i(0); i < p.blockCount(); i++)
 	{

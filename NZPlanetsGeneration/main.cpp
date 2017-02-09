@@ -17,7 +17,7 @@ int main()
 {
 	Nz::Clock c;
 
-	WorldMakerData d(9, 1.5f);
+	WorldMakerData d(6, 2.5f);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -36,17 +36,17 @@ int main()
 	d.biomes.push_back(Biome(0.125f, 0.25f, BiomeType::GROUND, RandomColor(Nz::Color(196, 212, 170)))); //grassland
 	d.biomes.push_back(Biome(0.125f, 0.08f, BiomeType::GROUND, RandomColor(Nz::Color(233, 221, 199)))); //subtropical desert
 	d.groundScale = 2.0f;
-	d.elevationNoiseScale = 10.0f;
-	d.elevationNoiseAmplitude = 0.2f;
+	d.elevationNoiseScale = 15.0f;
+	d.elevationNoiseAmplitude = 0.1f;
 	d.haveWater = true;
-	d.waterLevel = 0.5f;
+	d.waterLevel = 0.3f;
 	d.maxHeight = 0.3f;
 	d.maxDepth = 0.15f;
 	d.rivierCount = 50;
 	d.elevationAmplification = 2.5f;
 	d.waterDepthAmplification = 0.7f;
 	Generator generator(d);
-	Planet surface(generator.create(1));
+	Planet surface(generator.create(83));
 	surface.setRadius(4);
 
 	Ndk::Application application;
@@ -60,7 +60,7 @@ int main()
 	world.GetSystem<Ndk::RenderSystem>().SetGlobalUp(Nz::Vector3f::Up());
 
 	Ndk::EntityHandle viewEntity = world.CreateEntity();
-	viewEntity->AddComponent<Ndk::NodeComponent>();
+	Ndk::NodeComponent& cameraNode = viewEntity->AddComponent<Ndk::NodeComponent>();
 
 	Ndk::CameraComponent& viewer = viewEntity->AddComponent<Ndk::CameraComponent>();
 	viewer.SetTarget(&mainWindow);
@@ -92,12 +92,40 @@ int main()
 
 	std::cout << "Ready : " << c.GetSeconds() << std::endl;
 
+	auto & eventHandler(mainWindow.GetEventHandler());
+	eventHandler.OnMouseMoved.Connect([&planetNode](const Nz::EventHandler*, const Nz::WindowEvent::MouseMoveEvent & event)
+	{
+		Nz::EulerAnglesf euler(planetNode.GetRotation().ToEulerAngles());
+		euler.yaw += event.deltaX / 2.0f;
+		euler.pitch += event.deltaY / 2.0f;
+		euler.roll = 0;
+		if (euler.pitch > 90)
+			euler.pitch = 90;
+		if (euler.pitch < -90)
+			euler.pitch = -90;
+
+		planetNode.SetRotation(Nz::Quaternionf(euler));
+	});
+
+	eventHandler.OnMouseWheelMoved.Connect([&cameraNode](const Nz::EventHandler*, const Nz::WindowEvent::MouseWheelEvent & event)
+	{
+		cameraNode.Move(0, 0, event.delta);
+	});
+
+	eventHandler.OnKeyPressed.Connect([&mainWindow](const Nz::EventHandler*, const Nz::WindowEvent::KeyEvent & event)
+	{
+		if (event.code == Nz::Keyboard::Key::Escape)
+			mainWindow.Close();
+	});
+
 	while (application.Run())
 	{
-		planetNode.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds()*10, c.GetSeconds()*13.2f, 0)));
+		//planetNode.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds()*10, c.GetSeconds()*13.2f, 0)));
 		//planetNode2.SetRotation(Nz::Quaternionf(Nz::EulerAnglesf(c.GetSeconds() * 10, c.GetSeconds()*13.2f, 0)));
 		mainWindow.Display();
 	}
 
 	return EXIT_SUCCESS;
 }
+
+
