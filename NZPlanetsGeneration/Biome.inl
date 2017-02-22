@@ -1,4 +1,3 @@
-
 //#include "Biome.h"
 
 #include <random>
