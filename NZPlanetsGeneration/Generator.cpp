@@ -261,52 +261,78 @@ void Generator::createElevation(Planet & p)
 	for (unsigned int point : points)
 		perlinValues.push_back(perlin.Get(m_points[point].x, m_points[point].y, m_points[point].z, m_datas.groundScale)*0.5f + 0.5f);
 
-	for (unsigned int i(0); i < p.blockCount(); i++)
+	bool lakeHeightChanged(false);
+	do
 	{
-		if (p.block(i).data.biomeIndex != m_lakeBiomeIndex)
-			continue;
-		if (std::find(points.begin(), points.end(), i) != points.end())
-			continue;
+		lakeHeightChanged = false;
+		std::vector<unsigned int> updatedLake;
 
-		std::vector<unsigned int> lake;
-		std::vector<unsigned int> toUpdate{ i };
-		float minimum(std::numeric_limits<float>::max());
-		while (!toUpdate.empty())
+		for (unsigned int i(0); i < p.blockCount(); i++)
 		{
-			unsigned int index(toUpdate.front());
-			for (unsigned int connected : p.connectedBlocks(index))
+			if (p.block(i).data.biomeIndex != m_lakeBiomeIndex)
+				continue;
+			if (std::find(updatedLake.begin(), updatedLake.end(), i) != updatedLake.end())
+				continue;
+			bool onPoints(std::find(points.begin(), points.end(), i) != points.end());
+
+			std::vector<unsigned int> lake;
+			std::vector<unsigned int> toUpdate{ i };
+			float minimum(std::numeric_limits<float>::max());
+			while (!toUpdate.empty())
 			{
-				if (p.block(connected).data.biomeIndex != m_lakeBiomeIndex)
-					continue;
-				if (std::find(toUpdate.begin(), toUpdate.end(), connected) != toUpdate.end() || std::find(lake.begin(), lake.end(), connected) != lake.end())
-					continue;
-				toUpdate.push_back(connected);
+				unsigned int index(toUpdate.front());
+				for (unsigned int connected : p.connectedBlocks(index))
+				{
+					if (p.block(connected).data.biomeIndex != m_lakeBiomeIndex)
+						continue;
+					if (std::find(toUpdate.begin(), toUpdate.end(), connected) != toUpdate.end() || std::find(lake.begin(), lake.end(), connected) != lake.end())
+						continue;
+					toUpdate.push_back(connected);
+				}
+				unsigned int perlinIndex(0);
+				for (unsigned int point : points)
+				{
+					auto & b(p.block(point));
+					/*if (b.data.biomeIndex != m_noBiomeIndex)
+						continue;*/
+					//float height(sqrt((m_points[index] - m_points[point]).GetSquaredLength())*perlinValues[perlinIndex]);
+					float height(p.block(point).data.height + sqrt((m_points[index] - m_points[point]).GetSquaredLength())*perlinValues[perlinIndex]);
+					if (height < minimum)
+						minimum = height;
+
+					perlinIndex++;
+				}
+				toUpdate.erase(toUpdate.begin());
+				lake.push_back(index);
 			}
-			unsigned int perlinIndex(0);
-			for (unsigned int point : points)
+
+			if (!onPoints || minimum < p.block(i).data.height)
 			{
-				auto & b(p.block(point));
-				if (b.data.biomeIndex != m_noBiomeIndex)
-					continue;
-				float height(sqrt((m_points[index] - m_points[point]).GetSquaredLength())*perlinValues[perlinIndex]);
-				if (height < minimum)
-					minimum = height;
+				lakeHeightChanged = true;
+				std::cout << minimum << " " << p.block(i).data.height << std::endl;
 
-				perlinIndex++;
+				for (unsigned point : lake)
+				{
+					p.block(point).data.height = minimum;
+					updatedLake.push_back(point);
+					if (!onPoints)
+					{
+						perlinValues.push_back(perlin.Get(m_points[point].x, m_points[point].y, m_points[point].z, m_datas.groundScale)*0.4f + 0.5f);
+						points.push_back(point);
+					}
+
+				}
 			}
-			toUpdate.erase(toUpdate.begin());
-			lake.push_back(index);
+			else
+			{
+				for (unsigned point : lake)
+					updatedLake.push_back(point);
+			}
 		}
-
-		for (unsigned point : lake)
-		{
-			p.block(point).data.height = minimum;
-			points.push_back(point);
-		}
-	}
-
-	for (unsigned int i(perlinValues.size()) ; i < points.size() ; i++)
-		perlinValues.push_back(perlin.Get(m_points[points[i]].x, m_points[points[i]].y, m_points[points[i]].z, m_datas.groundScale)*0.4f + 0.5f);
+	
+	/*for (unsigned int i(perlinValues.size()) ; i < points.size() ; i++)
+		perlinValues.push_back(perlin.Get(m_points[points[i]].x, m_points[points[i]].y, m_points[points[i]].z, m_datas.groundScale)*0.4f + 0.5f);*/
+	}while (lakeHeightChanged);
 
 	// --- elevation ---
 	for (unsigned int i(0); i < p.blockCount(); i++)
