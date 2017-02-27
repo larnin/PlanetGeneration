@@ -38,7 +38,7 @@ public:
 	typename std::vector<SphereBlock<T>>::iterator blocksEnd() { return m_blocks.end(); }
 	SphereBlock<T> & block(unsigned int index) { return m_blocks[index]; }
 	const SphereBlock<T> & block(unsigned int index) const { return m_blocks[index]; }
-	std::vector<unsigned int> connectedBlocks(unsigned int id);
+	std::vector<unsigned int> connectedBlocks(unsigned int id) const;
 
 	std::vector<SphereTriangle>::const_iterator trianglesBegin() const { return m_triangles.begin(); }
 	std::vector<SphereTriangle>::iterator trianglesBegin() { return m_triangles.begin(); }

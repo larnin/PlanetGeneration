@@ -25,7 +25,7 @@ void SphereSurface<T>::addBlock(const SpherePoint & pos, T value = T())
 }
 
 template <typename T>
-std::vector<unsigned int> SphereSurface<T>::connectedBlocks(unsigned int id)
+std::vector<unsigned int> SphereSurface<T>::connectedBlocks(unsigned int id) const
 {
 	assert(id < m_blocks.size());
 

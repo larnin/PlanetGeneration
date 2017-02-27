@@ -12,8 +12,18 @@ bool Planet::isOnRiver(unsigned int blockID) const
 {
 	return std::find_if(m_rivers.begin(), m_rivers.end(), [blockID](const auto & river) 
 	{
-		return std::find_if(river.begin(), river.end(), [blockID](auto id) {return id == blockID; }) != river.end(); 
+		return std::find_if(river.begin(), river.end(), [blockID](auto id) {return id.index == blockID; }) != river.end();
 	}) != m_rivers.end();
+}
+
+unsigned int Planet::riverIndexAt(unsigned int blockID) const
+{
+	auto it(std::find_if(m_rivers.begin(), m_rivers.end(), [blockID](const auto & river)
+	{
+		return std::find_if(river.begin(), river.end(), [blockID](auto id) {return id.index == blockID; }) != river.end();
+	}));
+	assert(it != m_rivers.end());
+	return std::distance(m_rivers.begin(), it);
 }
 
 unsigned int Planet::nearestBiomeID(float temperature, float moisture)
@@ -36,3 +46,4 @@ unsigned int Planet::nearestBiomeID(float temperature, float moisture)
 	}
 	return nearestBiome;
 }
+

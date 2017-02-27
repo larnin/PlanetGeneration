@@ -8,10 +8,9 @@
 template <typename T>
 struct SphereBlock
 {
-	SphereBlock(const SpherePoint & _pos, const T & _value = T()) : pos(_pos) , data(_value) { }
+	inline SphereBlock(const SpherePoint & _pos, const T & _value = T()) : pos(_pos) , data(_value) { }
 
 	SpherePoint pos;
-
 	T data;
 
 	std::vector<unsigned int> triangles;
@@ -19,7 +18,7 @@ struct SphereBlock
 
 struct SphereTriangle
 {
-	SphereTriangle(unsigned int b1, unsigned int b2, unsigned int b3)
+	inline SphereTriangle(unsigned int b1, unsigned int b2, unsigned int b3)
 		: block1(b1)
 		, block2(b2)
 		, block3(b3)
@@ -34,7 +33,7 @@ struct SphereTriangle
 
 struct SphereLine
 {
-	SphereLine(unsigned int b1, unsigned int b2)
+	inline SphereLine(unsigned int b1, unsigned int b2)
 		: block1(b1)
 		, block2(b2)
 	{}
@@ -59,6 +58,14 @@ struct BlockInfo
 	float moisture;
 	float temperature;
 	unsigned int biomeIndex;
+};
+
+struct RivierPoint
+{
+	inline RivierPoint(unsigned int _index, float _width) : index(_index), width(_width) {}
+
+	unsigned int index;
+	float width;
 };
 
 //#include "block.tpp"

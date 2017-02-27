@@ -378,8 +378,18 @@ void Generator::adaptElevation(Planet & p) const
 
 void Generator::createRivers(Planet & p)
 {
-	std::mt19937 engine(m_generator);
-	std::uniform_int_distribution<unsigned int> d(0, p.blockCount()-1);
+	struct RiverConnexion
+	{
+		RiverConnexion(unsigned int _from, unsigned int _to, unsigned int _index) : from(_from), to(_to), index(_index) {}
+
+		unsigned int from;
+		unsigned int to;
+		unsigned int index;
+	};
+
+	std::mt19937 engine(m_generator());
+	std::uniform_int_distribution<unsigned int> d(0, p.blockCount() - 1);
+	std::vector<RiverConnexion> connexions; 
 
 	for (unsigned int i(0); i < m_datas.rivierCount; i++)
 	{
@@ -387,9 +397,11 @@ void Generator::createRivers(Planet & p)
 		for (unsigned int i(0); i < 10; i++)
 		{
 			unsigned int index(d(engine));
+			if (p.isOnRiver(index))
+				continue;
 			if (p.biome(p.block(index).data.biomeIndex).type() == BiomeType::NONE)
 			{
-				r.push_back(index);
+				r.emplace_back(index, 0);
 				break;
 			}
 		}
@@ -398,14 +410,67 @@ void Generator::createRivers(Planet & p)
 
 		while (true)
 		{
-			const auto& b(p.block(r.back()));
+			unsigned int index(r.back().index);
+			const auto& b(p.block(index));
 			const auto& biome(p.biome(b.data.biomeIndex));
-			if (biome.type() == BiomeType::OCEAN || biome.type() == BiomeType::LAKE)
+			if (biome.type() == BiomeType::OCEAN)
 				break;
-
+			if (biome.type() == BiomeType::LAKE)
+			{
+				float lowerHeight(std::numeric_limits<float>::max());
+				unsigned int lowerIndex(0);
+				unsigned int connectedIndex(0);
+				for (unsigned int lake : connectedPointsOfBiome(p, index))
+					for (unsigned int i : p.connectedBlocks(lake))
+					{
+						float height(p.block(i).data.height);
+						if (height < lowerHeight)
+						{
+							lowerHeight = height;
+							lowerIndex = i;
+							connectedIndex = lake;
+						}
+					}
+				if (p.isOnRiver(connectedIndex))
+					index = connectedIndex;
+				else
+				{
+					p.addRiver(r);
+					float width(r.back().width);
+					r.clear();
+					r.emplace_back(connectedIndex, width);
+					connexions.emplace_back(p.riverCount() - 1, p.riverCount(), connectedIndex);
+				}
+			}
+			if (p.isOnRiver(index))
+			{
+				unsigned int blockOnRiverIndex(index);
+				unsigned int riverIndex(p.riverIndexAt(blockOnRiverIndex));
+				bool stillOnRiver(true);
+				while (stillOnRiver)
+				{
+					bool found(false);
+					for (auto & point : p.river(riverIndex))
+					{
+						if (point.index == r.back().index)
+							found = true;
+						if (found)
+							point.width += r.back().width;
+					}
+					auto it(std::find_if(connexions.begin(), connexions.end(), [riverIndex](const auto & c) {return c.from == riverIndex; }));
+					if (it != connexions.end())
+					{
+						riverIndex = it->to;
+						blockOnRiverIndex = it->index;
+					}
+					else stillOnRiver = false;
+				}
+				break;
+				connexions.emplace_back(p.riverCount(), p.riverIndexAt(index), index);
+			}
 			unsigned int bestIndex(0);
 			float bestHeight(std::numeric_limits<float>::max());
-			for (unsigned int i : p.connectedBlocks(r.back()))
+			for (unsigned int i : p.connectedBlocks(r.back().index))
 			{
 				const auto& b2(p.block(i));
 				if (b2.data.height < bestHeight)
@@ -416,12 +481,9 @@ void Generator::createRivers(Planet & p)
 			}
 			if (bestHeight > b.data.height)
 				break;
-			if (std::find(r.begin(), r.end(), bestIndex) != r.end())
-			{
-				r.push_back(bestIndex);
+			r.emplace_back(bestIndex, r.back().width + (m_points[r.back().index] - m_points[bestIndex]).GetLength());
+			if (std::find_if(r.begin(), r.end(), [bestIndex](const auto & point) {return point.index == bestIndex; }) != r.end())
 				break;
-			}
-			r.push_back(bestIndex);
 		}
 		p.addRiver(r);
 	}
@@ -432,11 +494,11 @@ void Generator::createMoisture(Planet & p) const
 	std::vector<unsigned int> points;
 
 	for (unsigned int i(0); i < p.riverCount(); i++)
-		for (unsigned int index : p.river(i))
+		for (const auto & point : p.river(i))
 		{
-			if (std::find(points.begin(), points.end(), index) != points.end())
+			if (std::find(points.begin(), points.end(), point.index) != points.end())
 				continue;
-			points.push_back(index);
+			points.push_back(point.index);
 		}
 
 	std::vector<unsigned int> computedPoints(points);
@@ -507,4 +569,28 @@ void Generator::cleanData()
 	m_oceanBiomeIndex = 0;
 	m_lakeBiomeIndex = 0;
 	m_noBiomeIndex = 0;
+}
+
+std::vector<unsigned int> Generator::connectedPointsOfBiome(const Planet & p, unsigned int index)
+{
+	unsigned int biomeIndex(p.block(index).data.biomeIndex);
+	std::vector<unsigned int> points;
+	std::vector<unsigned int> toDo{ index };
+
+	while (!toDo.empty())
+	{
+		unsigned int i(toDo.front());
+		toDo.erase(toDo.begin());
+
+		if (p.block(i).data.biomeIndex != biomeIndex)
+			continue;
+		for (auto nextBlock : p.connectedBlocks(i))
+		{
+			if (std::find(points.begin(), points.end(), nextBlock) != points.end() || std::find(toDo.begin(), toDo.end(), nextBlock) != toDo.end())
+				continue;
+			toDo.push_back(nextBlock);
+		}
+		points.push_back(i);
+	}
+	return points;
 }

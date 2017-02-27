@@ -20,7 +20,7 @@ struct WorldMakerData
 		, elevationNoiseScale(10)
 		, elevationNoiseAmplitude(0.1f)
 		, haveWater(true)
-		, maxLakeSize(pow(2, _subdivisions * 2) / 10)
+		, maxLakeSize((unsigned int)(pow(2, _subdivisions * 2) / 10))
 		, waterLevel(0.5f)
 		, rivierCount(10)
 		, elevationAmplification(1.0f)
@@ -70,6 +70,8 @@ private:
 	void createTemperature(Planet & p) const;
 	void createBiomes(Planet & p) const;
 	void cleanData();
+
+	std::vector<unsigned int> connectedPointsOfBiome(const Planet & p, unsigned int index);
 
 	WorldMakerData m_datas;
 	bool m_generating;

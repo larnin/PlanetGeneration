@@ -7,7 +7,7 @@
 #include "Biome.h"
 #include <vector>
 
-using River = std::vector<unsigned int>;
+using River = std::vector<RivierPoint>;
 
 class Planet : public SphereSurface<BlockInfo>
 {
@@ -24,15 +24,17 @@ public:
 
 	inline void addRiver(const River & r) { m_rivers.push_back(r); }
 	inline unsigned int riverCount() const { return m_rivers.size(); }
-	inline const River & river(unsigned int id) { return m_rivers[id]; }
+	inline const River & river(unsigned int id) const { return m_rivers[id]; }
+	inline River & river(unsigned int id) { return m_rivers[id]; }
 
 	bool isOnRiver(unsigned int blockID) const;
+	unsigned int riverIndexAt(unsigned int blockID) const;
 
 	unsigned int nearestBiomeID(float temperature, float moisture);
 
 private:
 	std::vector<Biome> m_biomes;
-	std::vector<std::vector<unsigned int>> m_rivers;
+	std::vector<River> m_rivers;
 };
 
 #include "Planet.inl"

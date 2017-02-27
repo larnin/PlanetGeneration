@@ -17,7 +17,7 @@ int main()
 {
 	Nz::Clock c;
 
-	WorldMakerData d(6, 1.5f);
+	WorldMakerData d(6, 2.5f);
 	d.biomes.push_back(Biome(0, 0, BiomeType::LAKE, RandomColor(Nz::Color(85, 125, 166))));
 	d.biomes.push_back(Biome(0, 0, BiomeType::OCEAN, RandomColor(Nz::Color(54, 54, 97))));
 	d.biomes.push_back(Biome(0.875f, 0.75f, BiomeType::GROUND, RandomColor(Nz::Color(248, 248, 248)))); //snow
@@ -39,7 +39,7 @@ int main()
 	d.elevationNoiseScale = 15.0f;
 	d.elevationNoiseAmplitude = 0.1f;
 	d.haveWater = true;
-	d.waterLevel = 0.3f;
+	d.waterLevel = 0.5f;
 	d.maxHeight = 0.3f;
 	d.maxDepth = 0.15f;
 	d.rivierCount = 50;
